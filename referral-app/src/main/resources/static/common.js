@@ -112,13 +112,13 @@ function getRoleConfig(role) {
       title: "Referral App",
       subtitle: "高校校友内推学生端",
       menus: [
-        { key: "dashboard", label: "首页", shortLabel: "首页", desc: "推荐岗位与动态总览", href: "/dashboard.html" },
+        { key: "dashboard", label: "首页", shortLabel: "首页", desc: "推荐岗位与最新动态", href: "/dashboard.html" },
         { key: "jobs", label: "岗位", shortLabel: "岗位", desc: "搜索和筛选内推职位", href: "/jobs.html" },
-        { key: "favorites", label: "收藏", shortLabel: "收藏", desc: "保存待投递的岗位", href: "/favorites.html" },
+        { key: "favorites", label: "收藏", shortLabel: "收藏", desc: "保存待投递岗位", href: "/favorites.html" },
         { key: "companies", label: "企业", shortLabel: "企业", desc: "查看企业信息和开放职位", href: "/companies.html" },
         { key: "applications", label: "申请", shortLabel: "申请", desc: "跟踪内推申请进度", href: "/applications.html" },
-        { key: "consults", label: "消息", shortLabel: "消息", desc: "与校友沟通并跟进", href: "/consults.html" },
-        { key: "profile", label: "我的资料", shortLabel: "资料", desc: "维护个人档案与简历", href: "/profile.html" }
+        { key: "consults", label: "消息", shortLabel: "消息", desc: "围绕岗位继续沟通", href: "/consults.html" },
+        { key: "profile", label: "资料", shortLabel: "资料", desc: "维护个人档案和简历", href: "/profile.html" }
       ]
     },
     ALUMNI: {
@@ -127,10 +127,10 @@ function getRoleConfig(role) {
       menus: [
         { key: "dashboard", label: "工作台", shortLabel: "工作台", desc: "查看岗位、申请与沟通进度", href: "/dashboard.html" },
         { key: "companies", label: "企业", shortLabel: "企业", desc: "查看合作企业和关联岗位", href: "/companies.html" },
-        { key: "jobs", label: "我的岗位", shortLabel: "岗位", desc: "发布并维护自己的内推岗位", href: "/jobs.html" },
+        { key: "jobs", label: "我的岗位", shortLabel: "岗位", desc: "发布并维护自己的岗位", href: "/jobs.html" },
         { key: "applications", label: "学生申请", shortLabel: "申请", desc: "处理投递到我岗位的申请", href: "/applications.html" },
-        { key: "consults", label: "沟通消息", shortLabel: "消息", desc: "回复学生咨询并跟进进度", href: "/consults.html" },
-        { key: "profile", label: "我的资料", shortLabel: "资料", desc: "维护校友档案与内推权限", href: "/profile.html" }
+        { key: "consults", label: "消息", shortLabel: "消息", desc: "回复学生咨询并持续跟进", href: "/consults.html" },
+        { key: "profile", label: "资料", shortLabel: "资料", desc: "维护校友档案与权限", href: "/profile.html" }
       ]
     }
   };
@@ -168,6 +168,7 @@ function applySidebarCollapsedState() {
   }
   shell.classList.toggle("sidebar-collapsed", collapsed);
   toggle.textContent = collapsed ? "展开菜单" : "收起菜单";
+  toggle.dataset.collapsed = collapsed ? "1" : "0";
   toggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
@@ -176,6 +177,7 @@ function bindSidebarToggle() {
   if (!toggle) {
     return;
   }
+  toggle.onclick = null;
   toggle.addEventListener("click", () => {
     saveSidebarCollapsed(!getSidebarCollapsed());
     applySidebarCollapsedState();
@@ -231,6 +233,15 @@ function renderAppLayout(pageKey, title, subtitle, mainContent) {
   applySidebarCollapsedState();
 }
 
+document.addEventListener("click", (event) => {
+  const toggle = event.target.closest("#sidebar-toggle");
+  if (!toggle) {
+    return;
+  }
+  event.preventDefault();
+  saveSidebarCollapsed(!getSidebarCollapsed());
+  applySidebarCollapsedState();
+});
 function closePageModal() {
   const modal = document.getElementById("page-modal-root");
   if (!modal) {
