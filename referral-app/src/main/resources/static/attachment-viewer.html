@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>附件查看</title>
+  <title>闄勪欢鏌ョ湅</title>
   <style>
     :root { color-scheme: light dark; }
     body { margin: 0; font-family: Arial, sans-serif; background: #101218; color: #e8eaf2; }
@@ -16,13 +16,13 @@
     .panel object { width: 100%; height: calc(100vh - 160px); border: none; background: #fff; }
     .fallback { padding: 16px; color: #f1c7c7; }
   </style>
-  <script src="/common.js?v=20260426-sidebar-fix"></script>
+  <script src="/common.js?v=20260426-sidebar-remove"></script>
 </head>
 <body>
   <div class="viewer">
     <div class="toolbar">
-      <a id="raw-link" class="btn" href="#" target="_blank" rel="noreferrer">打开原始文件</a>
-      <span id="status" class="status">准备加载附件...</span>
+      <a id="raw-link" class="btn" href="#" target="_blank" rel="noreferrer">鎵撳紑鍘熷鏂囦欢</a>
+      <span id="status" class="status">鍑嗗鍔犺浇闄勪欢...</span>
     </div>
     <div id="panel" class="panel"></div>
   </div>
@@ -45,8 +45,8 @@
       }
 
       if (!safeUrl) {
-        panel.innerHTML = '<div class="fallback">附件地址无效。</div>';
-        setStatus("加载失败");
+        panel.innerHTML = '<div class="fallback">闄勪欢鍦板潃鏃犳晥銆?/div>';
+        setStatus("鍔犺浇澶辫触");
         return;
       }
 
@@ -72,14 +72,14 @@
         const contentType = payload.contentType || "application/octet-stream";
         blobUrl = URL.createObjectURL(new Blob([bytes], { type: contentType }));
         if (contentType.startsWith("image/")) {
-          panel.innerHTML = `<img src="${blobUrl}" alt="附件图片">`;
+          panel.innerHTML = `<img src="${blobUrl}" alt="闄勪欢鍥剧墖">`;
         } else {
-          panel.innerHTML = `<object data="${blobUrl}#toolbar=1&navpanes=0&scrollbar=1" type="application/pdf"><div class="fallback">浏览器无法内嵌显示该附件，请使用“打开原始文件”。</div></object>`;
+          panel.innerHTML = `<object data="${blobUrl}#toolbar=1&navpanes=0&scrollbar=1" type="application/pdf"><div class="fallback">娴忚鍣ㄦ棤娉曞唴宓屾樉绀鸿闄勪欢锛岃浣跨敤鈥滄墦寮€鍘熷鏂囦欢鈥濄€?/div></object>`;
         }
-        setStatus("加载完成");
+        setStatus("鍔犺浇瀹屾垚");
       } catch (error) {
-        panel.innerHTML = '<div class="fallback">附件加载失败，请点击“打开原始文件”。</div>';
-        setStatus("加载失败");
+        panel.innerHTML = '<div class="fallback">闄勪欢鍔犺浇澶辫触锛岃鐐瑰嚮鈥滄墦寮€鍘熷鏂囦欢鈥濄€?/div>';
+        setStatus("鍔犺浇澶辫触");
       }
 
       window.addEventListener("beforeunload", () => {
