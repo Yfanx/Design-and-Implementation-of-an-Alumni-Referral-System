@@ -70,8 +70,8 @@ public class AppAuthController {
         if (!reqVO.getPassword().equals(reqVO.getConfirmPassword())) {
             return error("两次密码输入不一致");
         }
-        if (!"STUDENT".equals(reqVO.getRole())) {
-            return error("前台自助注册仅开放给学生");
+        if (!"STUDENT".equals(reqVO.getRole()) && !"ALUMNI".equals(reqVO.getRole())) {
+            return error("仅支持学生和校友注册");
         }
         if (authService.isUsernameTaken(reqVO.getUsername())) {
             return error("用户名已被注册");

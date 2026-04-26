@@ -77,6 +77,28 @@ public class AuthAccountServiceImpl implements AuthAccountService {
     }
 
     @Override
+    public void updateAccountLink(Long accountId, Long userId, Long profileId) {
+        if (accountId == null) {
+            return;
+        }
+        if (storageProperties.isMysqlMode()) {
+            jdbcTemplate.update("""
+                    UPDATE ref_auth_account
+                    SET user_id = ?, profile_id = ?
+                    WHERE id = ?
+                    """, userId, profileId, accountId);
+            return;
+        }
+        AuthAccountDO account = referralDemoStore.getAuthAccountById(accountId);
+        if (account == null) {
+            return;
+        }
+        account.setUserId(userId);
+        account.setProfileId(profileId);
+        referralDemoStore.saveAuthAccount(account);
+    }
+
+    @Override
     public boolean verifyPassword(String username, String password) {
         AuthAccountDO account = getByUsername(username);
         if (account == null) {

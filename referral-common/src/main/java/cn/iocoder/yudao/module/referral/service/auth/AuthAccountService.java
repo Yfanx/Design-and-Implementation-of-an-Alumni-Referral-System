@@ -8,5 +8,7 @@ public interface AuthAccountService {
 
     Long createAccount(String username, String password, String role, Long userId, Long profileId);
 
+    void updateAccountLink(Long accountId, Long userId, Long profileId);
+
     boolean verifyPassword(String username, String password);
 }

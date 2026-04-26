@@ -202,6 +202,10 @@ public class ReferralDemoStore {
                 .orElse(null);
     }
 
+    public AuthAccountDO getAuthAccountById(Long id) {
+        return authAccountStore.get(id);
+    }
+
     public StudentInfoDO getStudent(Long id) {
         return studentStore.get(id);
     }

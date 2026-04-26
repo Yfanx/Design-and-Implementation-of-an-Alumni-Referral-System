@@ -8,9 +8,9 @@ import cn.iocoder.yudao.module.referral.controller.admin.student.vo.StudentInfoC
 import cn.iocoder.yudao.module.referral.controller.admin.student.vo.StudentInfoUpdateReqVO;
 import cn.iocoder.yudao.module.referral.service.alumni.AlumniInfoService;
 import cn.iocoder.yudao.module.referral.service.student.StudentInfoService;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Resource;
 import java.util.List;
 
 @Service
@@ -28,12 +28,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthLoginRespVO register(AuthRegisterReqVO reqVO) {
         Long profileId;
-        Long userId;
+        Long accountId = authAccountService.createAccount(reqVO.getUsername(), reqVO.getPassword(), reqVO.getRole(), null, null);
+        Long userId = accountId;
         String displayName = reqVO.getRealName();
         List<String> menus;
 
         if ("STUDENT".equals(reqVO.getRole())) {
             StudentInfoCreateReqVO studentVO = new StudentInfoCreateReqVO();
+            studentVO.setUserId(userId);
             studentVO.setRealName(reqVO.getRealName());
             studentVO.setGender(reqVO.getGender());
             studentVO.setStudentNo(reqVO.getStudentNo());
@@ -42,7 +44,6 @@ public class AuthServiceImpl implements AuthService {
             studentVO.setGrade(reqVO.getGrade());
             studentVO.setEducation(reqVO.getEducation());
             profileId = studentInfoService.createStudentInfo(studentVO);
-            userId = profileId;
 
             StudentInfoUpdateReqVO updateStudent = new StudentInfoUpdateReqVO();
             updateStudent.setId(profileId);
@@ -59,6 +60,7 @@ public class AuthServiceImpl implements AuthService {
             menus = List.of("dashboard", "jobs", "favorites", "companies", "applications", "consults", "profile");
         } else if ("ALUMNI".equals(reqVO.getRole())) {
             AlumniInfoCreateReqVO alumniVO = new AlumniInfoCreateReqVO();
+            alumniVO.setUserId(userId);
             alumniVO.setRealName(reqVO.getRealName());
             alumniVO.setGender(reqVO.getGender());
             alumniVO.setGraduationYear(reqVO.getGraduationYear() != null ? Integer.parseInt(reqVO.getGraduationYear()) : null);
@@ -71,7 +73,6 @@ public class AuthServiceImpl implements AuthService {
             alumniVO.setIntro(reqVO.getIntro());
             alumniVO.setReferralPermission(1);
             profileId = alumniInfoService.createAlumniInfo(alumniVO);
-            userId = profileId;
 
             AlumniInfoUpdateReqVO updateAlumni = new AlumniInfoUpdateReqVO();
             updateAlumni.setId(profileId);
@@ -95,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("不支持的角色类型");
         }
 
-        authAccountService.createAccount(reqVO.getUsername(), reqVO.getPassword(), reqVO.getRole(), userId, profileId);
+        authAccountService.updateAccountLink(accountId, userId, profileId);
 
         return new AuthLoginRespVO(
                 "token-" + reqVO.getUsername(),

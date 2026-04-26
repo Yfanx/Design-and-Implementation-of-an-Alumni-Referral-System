@@ -2,81 +2,39 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学生注册 - 校友内推平台</title>
-    <link rel="stylesheet" href="/style.css?v=20260427-ui-premium2">
+    <title>注册账号 - 校友内推平台</title>
+    <link rel="stylesheet" href="/style.css?v=20260427-register-dual-role">
 </head>
-<body class="login-page">
-<div class="login-scene" aria-hidden="true">
-    <span class="login-orb login-orb-1"></span>
-    <span class="login-orb login-orb-3"></span>
+<body class="login-page login-page-cyber">
+<div class="login-scene login-scene-cyber" aria-hidden="true">
     <span class="login-grid"></span>
+    <span class="login-star login-star-1"></span>
+    <span class="login-star login-star-2"></span>
+    <span class="login-star login-star-3"></span>
 </div>
 
-<div class="login-shell register-shell">
-    <section class="login-hero premium-login-hero">
-        <div class="hero-badge">Student Onboarding</div>
-        <div class="hero-kicker">Career Profile Setup</div>
-        <h1>先建立一份清晰的求职档案，再进入岗位浏览、申请投递与校友沟通链路。</h1>
-        <p>
-            注册完成后系统会自动登录，并引导你进入学生工作台继续完善资料。
-            这套入口页与后续页面使用同一视觉语言，答辩展示时更完整。
-        </p>
-
-        <div class="hero-feature-strip">
-            <article class="hero-feature-card reveal reveal-delay-1">
-                <span class="hero-feature-index">01</span>
-                <strong>快速建档</strong>
-                <p>先录入账号和基础身份信息，后续在资料页继续完善技能标签与简历附件。</p>
-            </article>
-            <article class="hero-feature-card reveal reveal-delay-2">
-                <span class="hero-feature-index">02</span>
-                <strong>岗位匹配</strong>
-                <p>系统会结合目标岗位、城市和技能标签展示更贴近方向的机会。</p>
-            </article>
-            <article class="hero-feature-card reveal reveal-delay-3">
-                <span class="hero-feature-index">03</span>
-                <strong>持续跟进</strong>
-                <p>投递后的申请记录、咨询消息与处理状态会在前台持续联动。</p>
-            </article>
+<div class="login-shell login-shell-cyber">
+    <form class="login-card login-card-cyber register-card register-card-dual" id="register-form">
+        <div class="login-logo-row">
+            <span class="login-logo-mark">IR</span>
+            <span class="login-logo-text">校友内推平台</span>
         </div>
 
-        <div class="login-showcase-grid">
-            <div class="console-frame premium-console">
-                <div class="console-head">
-                    <div class="console-dots"><span></span><span></span><span></span></div>
-                    <span>student onboarding</span>
-                </div>
-                <div class="console-line"><span class="console-label">step 1</span><span>创建学生账号并初始化求职档案</span></div>
-                <div class="console-line"><span class="console-label">step 2</span><span>进入资料页补充方向、技能标签和简历附件</span></div>
-                <div class="console-line"><span class="console-label">step 3</span><span>开始浏览岗位、收藏岗位并投递申请</span></div>
-            </div>
-
-            <div class="premium-stat-stack">
-                <div class="hero-stat premium-stat-card">
-                    <strong>3 步</strong>
-                    <span>完成注册到岗位浏览</span>
-                </div>
-                <div class="hero-stat premium-stat-card">
-                    <strong>学生端</strong>
-                    <span>聚焦求职、投递与咨询</span>
-                </div>
-                <div class="hero-stat premium-stat-card">
-                    <strong>可持续</strong>
-                    <span>资料支持后续逐步完善</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <form class="login-card premium-login-card register-card" id="register-form">
         <div class="login-card-top">
             <div>
-                <div class="section-eyebrow">Create Account</div>
-                <h2>学生注册</h2>
+                <span class="form-kicker">创建账号</span>
+                <h2>注册工作台账号</h2>
+                <p>先选择身份，再填写对应资料，注册后将自动进入对应端口的工作台。</p>
             </div>
-            <span class="profile-chip">注册后自动登录</span>
         </div>
+
+        <div class="role-switch" role="tablist" aria-label="注册身份切换">
+            <button type="button" class="role-switch-item is-active" data-role="STUDENT">学生注册</button>
+            <button type="button" class="role-switch-item" data-role="ALUMNI">校友注册</button>
+        </div>
+        <input type="hidden" name="role" id="register-role" value="STUDENT">
 
         <div class="form-section-label">账号信息</div>
         <label class="form-field">
@@ -97,7 +55,7 @@
         <div class="form-section-label">基础资料</div>
         <label class="form-field">
             <span>姓名</span>
-            <input name="realName" placeholder="例如：李同学">
+            <input name="realName" placeholder="例如：李同学 / 王校友" required>
         </label>
         <div class="field-row">
             <label class="form-field">
@@ -108,9 +66,13 @@
                     <option value="2">女</option>
                 </select>
             </label>
-            <label class="form-field">
+            <label class="form-field student-only">
                 <span>学号</span>
                 <input name="studentNo" placeholder="例如：2022001001">
+            </label>
+            <label class="form-field alumni-only is-hidden">
+                <span>毕业年份</span>
+                <input name="graduationYear" placeholder="例如：2021">
             </label>
         </div>
         <label class="form-field">
@@ -121,24 +83,82 @@
             <span>专业</span>
             <input name="major" placeholder="例如：软件工程">
         </label>
-        <div class="field-row">
+
+        <div class="register-panel student-panel" data-panel="STUDENT">
+            <div class="field-row">
+                <label class="form-field">
+                    <span>年级</span>
+                    <input name="grade" placeholder="例如：2022 级">
+                </label>
+                <label class="form-field">
+                    <span>学历</span>
+                    <input name="education" placeholder="例如：本科">
+                </label>
+            </div>
+        </div>
+
+        <div class="register-panel alumni-panel is-hidden" data-panel="ALUMNI">
+            <div class="field-row">
+                <label class="form-field">
+                    <span>所在企业</span>
+                    <input name="companyName" placeholder="例如：腾讯科技">
+                </label>
+                <label class="form-field">
+                    <span>所在城市</span>
+                    <input name="city" placeholder="例如：深圳">
+                </label>
+            </div>
+            <div class="field-row">
+                <label class="form-field">
+                    <span>岗位名称</span>
+                    <input name="positionName" placeholder="例如：后端开发工程师">
+                </label>
+                <label class="form-field">
+                    <span>行业方向</span>
+                    <input name="industry" placeholder="例如：互联网 / 金融科技">
+                </label>
+            </div>
             <label class="form-field">
-                <span>年级</span>
-                <input name="grade" placeholder="例如：2022 级">
-            </label>
-            <label class="form-field">
-                <span>学历</span>
-                <input name="education" placeholder="例如：本科">
+                <span>个人简介</span>
+                <textarea name="intro" rows="4" placeholder="简要说明你的工作方向、可提供的内推帮助或经验领域"></textarea>
             </label>
         </div>
 
         <button type="submit" class="btn btn-hero">完成注册</button>
-        <div class="login-result" id="register-result">填写信息后即可创建学生账号。</div>
-        <div class="login-note premium-login-note">注册成功后会自动跳转到学生首页，建议第一时间完善“我的资料”。</div>
+        <div class="login-result" id="register-result">填写完信息后即可创建账号。</div>
+        <div class="login-note premium-login-note" id="register-note">学生注册后会自动进入求职工作台，建议先完善“我的资料”。</div>
         <div class="login-switch">已经有账号？<a href="/login.html">返回登录</a></div>
     </form>
+
+    <section class="login-hero login-hero-cyber">
+        <div class="brand-hero-panel">
+            <div class="brand-hero-chip">身份入口</div>
+            <div class="brand-hero-copy">
+                <h1>先建立身份档案<br>再进入协同链路</h1>
+                <p>学生侧聚焦岗位浏览、收藏与投递，校友侧聚焦内推岗位发布、申请处理与咨询回复，注册时一次性选清身份即可。</p>
+            </div>
+            <div class="brand-hero-surface">
+                <div class="surface-grid surface-grid-a"></div>
+                <div class="surface-grid surface-grid-b"></div>
+                <div class="surface-beam surface-beam-a"></div>
+                <div class="surface-beam surface-beam-b"></div>
+                <div class="surface-card surface-card-main">
+                    <span>Student</span>
+                    <strong>岗位浏览与投递</strong>
+                </div>
+                <div class="surface-card surface-card-side">
+                    <span>Alumni</span>
+                    <strong>岗位发布与处理</strong>
+                </div>
+                <div class="surface-card surface-card-mini">
+                    <span>Ready</span>
+                    <strong>注册后自动登录</strong>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
-<script src="/common.js?v=20260427-ui-premium2"></script>
-<script src="/register.js?v=20260427-ui-premium2"></script>
+<script src="/common.js?v=20260427-register-dual-role"></script>
+<script src="/register.js?v=20260427-register-dual-role"></script>
 </body>
 </html>
