@@ -129,7 +129,7 @@ public class JobInfoServiceImpl implements JobInfoService {
             List<JobInfoRespVO> list = jdbcTemplate.query("""
                     SELECT j.id, j.alumni_id, j.company_id, c.company_name, j.job_title, j.job_type, j.industry, j.city,
                            j.salary_range, j.education_requirement, j.experience_requirement, j.skill_requirement,
-                           j.job_desc, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
+                           j.job_desc, j.contact_type, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
                     FROM ref_job_info j
                     LEFT JOIN ref_company_info c ON c.id = j.company_id
                     WHERE j.id = ?
@@ -148,7 +148,7 @@ public class JobInfoServiceImpl implements JobInfoService {
             List<JobInfoRespVO> list = jdbcTemplate.query("""
                     SELECT j.id, j.alumni_id, j.company_id, c.company_name, j.job_title, j.job_type, j.industry, j.city,
                            j.salary_range, j.education_requirement, j.experience_requirement, j.skill_requirement,
-                           j.job_desc, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
+                           j.job_desc, j.contact_type, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
                     FROM ref_job_info j
                     LEFT JOIN ref_company_info c ON c.id = j.company_id
                     ORDER BY j.id DESC
@@ -199,7 +199,7 @@ public class JobInfoServiceImpl implements JobInfoService {
             List<JobInfoRespVO> list = jdbcTemplate.query("""
                     SELECT j.id, j.alumni_id, j.company_id, c.company_name, j.job_title, j.job_type, j.industry, j.city,
                            j.salary_range, j.education_requirement, j.experience_requirement, j.skill_requirement,
-                           j.job_desc, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
+                           j.job_desc, j.contact_type, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
                     FROM ref_job_info j
                     LEFT JOIN ref_company_info c ON c.id = j.company_id
                     ORDER BY j.id DESC
@@ -356,6 +356,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         target.setExperienceRequirement(source.getExperienceRequirement());
         target.setSkillRequirement(source.getSkillRequirement());
         target.setJobDesc(source.getJobDesc());
+        target.setContactType(source.getContactType());
         target.setReferralQuota(source.getReferralQuota());
         target.setStatus(source.getStatus());
         target.setAuditStatus(source.getAuditStatus());
@@ -379,6 +380,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         target.setExperienceRequirement(rs.getString("experience_requirement"));
         target.setSkillRequirement(rs.getString("skill_requirement"));
         target.setJobDesc(rs.getString("job_desc"));
+        target.setContactType(rs.getString("contact_type"));
         target.setReferralQuota(rs.getInt("referral_quota"));
         target.setStatus(rs.getInt("status"));
         target.setAuditStatus(rs.getInt("audit_status"));

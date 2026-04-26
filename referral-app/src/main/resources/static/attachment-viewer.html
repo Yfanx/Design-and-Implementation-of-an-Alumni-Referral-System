@@ -1,89 +1,132 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>闄勪欢鏌ョ湅</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body { margin: 0; font-family: Arial, sans-serif; background: #101218; color: #e8eaf2; }
-    .viewer { max-width: 1200px; margin: 0 auto; padding: 16px; }
-    .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
-    .btn { border: 1px solid #4b5563; border-radius: 8px; padding: 8px 12px; color: #e8eaf2; text-decoration: none; }
-    .status { color: #cbd5e1; font-size: 14px; }
-    .panel { background: #171b25; border-radius: 10px; min-height: calc(100vh - 120px); padding: 10px; }
-    .panel img { max-width: 100%; max-height: calc(100vh - 160px); display: block; margin: 0 auto; }
-    .panel object { width: 100%; height: calc(100vh - 160px); border: none; background: #fff; }
-    .fallback { padding: 16px; color: #f1c7c7; }
-  </style>
-  <script src="/common.js?v=20260426-sidebar-work"></script>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>附件查看 - 校友内推平台</title>
+  <link rel="stylesheet" href="/style.css?v=20260427-attachment-viewer-clean">
+  <script src="/common.js?v=20260427-attachment-viewer-clean"></script>
 </head>
 <body>
-  <div class="viewer">
-    <div class="toolbar">
-      <a id="raw-link" class="btn" href="#" target="_blank" rel="noreferrer">鎵撳紑鍘熷鏂囦欢</a>
-      <span id="status" class="status">鍑嗗鍔犺浇闄勪欢...</span>
-    </div>
-    <div id="panel" class="panel"></div>
-  </div>
+  <div id="viewer-root"></div>
+
   <script>
     (async () => {
       let blobUrl = "";
-      const panel = document.getElementById("panel");
-      const status = document.getElementById("status");
-      const rawLink = document.getElementById("raw-link");
-      const queryUrl = new URLSearchParams(location.search).get("url") || "";
-      const safeUrl = (window.sanitizeAttachmentUrl ? sanitizeAttachmentUrl(queryUrl) : queryUrl.trim());
-      rawLink.href = safeUrl || "#";
+      const query = new URLSearchParams(location.search);
+      const safeUrl = typeof sanitizeAttachmentUrl === "function"
+        ? sanitizeAttachmentUrl(query.get("url") || "")
+        : (query.get("url") || "").trim();
+      const fileName = query.get("name") || "";
+      const embedMode = query.get("embed") === "1";
 
-      function setStatus(text) { status.textContent = text; }
       function decodeBase64ToUint8Array(base64Content) {
         const binary = atob(base64Content);
         const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
         return bytes;
       }
 
+      function mountShell() {
+        const root = document.getElementById("viewer-root");
+        if (embedMode) {
+          document.body.style.margin = "0";
+          root.innerHTML = `
+            <section class="attachment-preview-card attachment-viewer-embed-shell">
+              <div id="panel" class="attachment-preview-content attachment-viewer-embed-panel"></div>
+            </section>
+          `;
+          return;
+        }
+        root.innerHTML = `
+          <div class="content attachment-viewer-page attachment-viewer-page-clean">
+            <section class="attachment-viewer-shell panel">
+              <div class="attachment-viewer-topbar">
+                <div class="attachment-viewer-title">
+                  <div class="section-eyebrow">附件查看</div>
+                  <h1>${fileName || "预览附件"}</h1>
+                </div>
+                <div id="status" class="attachment-viewer-status">正在加载附件内容...</div>
+              </div>
+              <div id="panel" class="attachment-preview-card attachment-viewer-panel attachment-viewer-panel-clean"></div>
+            </section>
+          </div>
+        `;
+      }
+
+      function setPanelHtml(html) {
+        document.getElementById("panel").innerHTML = html;
+      }
+
+      function setStatus(text) {
+        const status = document.getElementById("status");
+        if (status) {
+          status.textContent = text;
+        }
+      }
+
+      mountShell();
+
       if (!safeUrl) {
-        panel.innerHTML = '<div class="fallback">闄勪欢鍦板潃鏃犳晥銆?/div>';
-        setStatus("鍔犺浇澶辫触");
+        setPanelHtml('<div class="attachment-preview-fallback">附件地址无效</div>');
+        setStatus("无法解析附件地址");
         return;
       }
 
       try {
-        const headers = {
-          ...(typeof buildAuthHeaders === "function" ? buildAuthHeaders() : {})
-        };
-        const resp = await fetch(`/referral/file/preview-content?url=${encodeURIComponent(safeUrl)}`, {
+        const headers = typeof buildAuthHeaders === "function" ? buildAuthHeaders() : {};
+        const response = await fetch(`/referral/file/preview-content?url=${encodeURIComponent(safeUrl)}`, {
           method: "GET",
           headers
         });
-        const text = await resp.text();
+        const text = await response.text();
         const result = text ? JSON.parse(text) : {};
-        if (!resp.ok || Number(result.code ?? resp.status) !== 0) {
+        if (!response.ok || Number(result.code ?? response.status) !== 0) {
           throw new Error(result.msg || result.message || "preview-failed");
         }
+
         const payload = result.data || {};
         const base64Content = payload.base64Content || "";
         if (!base64Content) {
           throw new Error("empty-content");
         }
+
         const bytes = decodeBase64ToUint8Array(base64Content);
         const contentType = payload.contentType || "application/octet-stream";
         blobUrl = URL.createObjectURL(new Blob([bytes], { type: contentType }));
+
         if (contentType.startsWith("image/")) {
-          panel.innerHTML = `<img src="${blobUrl}" alt="闄勪欢鍥剧墖">`;
-        } else {
-          panel.innerHTML = `<object data="${blobUrl}#toolbar=1&navpanes=0&scrollbar=1" type="application/pdf"><div class="fallback">娴忚鍣ㄦ棤娉曞唴宓屾樉绀鸿闄勪欢锛岃浣跨敤鈥滄墦寮€鍘熷鏂囦欢鈥濄€?/div></object>`;
+          setPanelHtml(`<img class="attachment-preview-image" src="${blobUrl}" alt="preview">`);
+          setStatus("图片加载完成");
+          return;
         }
-        setStatus("鍔犺浇瀹屾垚");
+
+        if (contentType.includes("pdf")) {
+          setPanelHtml(`
+            <iframe
+              class="attachment-preview-frame attachment-viewer-frame attachment-viewer-frame-clean"
+              src="${blobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
+              title="PDF preview">
+            </iframe>
+          `);
+          setStatus("PDF 已加载");
+          return;
+        }
+
+        setPanelHtml('<div class="attachment-preview-fallback">该文件类型暂不支持站内预览。</div>');
+        setStatus("当前文件不支持站内预览");
       } catch (error) {
-        panel.innerHTML = '<div class="fallback">闄勪欢鍔犺浇澶辫触锛岃鐐瑰嚮鈥滄墦寮€鍘熷鏂囦欢鈥濄€?/div>';
-        setStatus("鍔犺浇澶辫触");
+        setPanelHtml('<div class="attachment-preview-fallback">附件加载失败，请稍后重试。</div>');
+        setStatus("附件加载失败");
       }
 
       window.addEventListener("beforeunload", () => {
-        if (blobUrl) URL.revokeObjectURL(blobUrl);
+        if (blobUrl) {
+          URL.revokeObjectURL(blobUrl);
+        }
       });
     })();
   </script>

@@ -2,63 +2,76 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录系统 - 校友内推平台</title>
-    <link rel="stylesheet" href="/style.css">
+    <title>&#30331;&#24405;&#31995;&#32479; - &#26657;&#21451;&#20869;&#25512;&#24179;&#21488;</title>
+    <link rel="stylesheet" href="/style.css?v=20260427-login-brand-auth">
 </head>
-<body class="login-page">
-<div class="login-shell">
-    <section class="login-hero">
-        <div class="hero-badge">Career Portal</div>
-        <div class="hero-kicker">Alumni Referral</div>
-        <h1>把岗位推荐、简历投递和校友沟通整合到同一个系统入口</h1>
-        <p>学生可以浏览岗位、收藏职位、投递申请并继续咨询校友；校友可以发布岗位、处理申请并跟进消息，适合直接用于项目演示和答辩讲解。</p>
+<body class="login-page login-page-cyber">
+<div class="login-scene login-scene-cyber" aria-hidden="true">
+    <span class="login-grid"></span>
+    <span class="login-star login-star-1"></span>
+    <span class="login-star login-star-2"></span>
+    <span class="login-star login-star-3"></span>
+</div>
 
-        <div class="hero-columns">
-            <div class="feature-list">
-                <div class="feature-item">
-                    <strong>岗位浏览</strong>
-                    <p>支持关键词搜索、行业城市筛选和岗位详情查看，形成完整的浏览链路。</p>
-                </div>
-                <div class="feature-item">
-                    <strong>申请跟踪</strong>
-                    <p>投递后可以持续查看处理状态、处理备注和最新推进结果。</p>
-                </div>
-                <div class="feature-item">
-                    <strong>校友对接</strong>
-                    <p>围绕已投递岗位继续沟通，避免咨询对象和岗位关系混乱。</p>
-                </div>
-            </div>
-
-            <div class="console-frame">
-                <div class="console-head">
-                    <div class="console-dots"><span></span><span></span><span></span></div>
-                    <span>student / dashboard</span>
-                </div>
-                <div class="console-line"><span class="console-label">feed</span><span>推荐 Java 后端、算法、前端等校友内推岗位</span></div>
-                <div class="console-line"><span class="console-label">match</span><span>基于专业、目标城市和技能标签生成岗位匹配结果</span></div>
-                <div class="console-line"><span class="console-label">flow</span><span>浏览岗位 -> 收藏职位 -> 提交申请 -> 跟进消息</span></div>
+<div class="login-shell login-shell-cyber">
+    <form class="login-card login-card-cyber" id="login-form">
+        <div class="login-logo-row">
+            <span class="login-logo-mark">IR</span>
+            <span class="login-logo-text">&#26657;&#21451;&#20869;&#25512;&#24179;&#21488;</span>
+        </div>
+        <div class="login-card-top">
+            <div>
+                <span class="form-kicker">&#30331;&#24405;&#20837;&#21475;</span>
+                <h2>&#27426;&#36814;&#22238;&#26469;</h2>
+                <p>&#30331;&#24405;&#21518;&#36827;&#20837;&#23398;&#29983;&#19982;&#26657;&#21451;&#30340;&#20869;&#25512;&#24037;&#20316;&#21488;</p>
             </div>
         </div>
 
-        <div class="hero-stat-row">
-            <div class="hero-stat"><strong>1</strong><span>统一系统入口</span></div>
-            <div class="hero-stat"><strong>6+</strong><span>核心业务页面联动</span></div>
-            <div class="hero-stat"><strong>实时</strong><span>申请与消息状态同步</span></div>
+        <label class="form-field">
+            <span>&#29992;&#25143;&#21517;</span>
+            <input name="username" placeholder="&#35831;&#36755;&#20837;&#29992;&#25143;&#21517;" value="student" autocomplete="username">
+        </label>
+        <label class="form-field">
+            <span>&#23494;&#30721;</span>
+            <input name="password" type="password" placeholder="&#35831;&#36755;&#20837;&#23494;&#30721;" value="student123" autocomplete="current-password">
+        </label>
+
+        <button type="submit" class="btn btn-hero">&#31435;&#21363;&#30331;&#24405;</button>
+        <div class="login-result" id="login-result"></div>
+        <div class="login-switch">&#27809;&#26377;&#36134;&#21495;&#65311;<a href="/register.html">&#27880;&#20876;</a></div>
+    </form>
+
+    <section class="login-hero login-hero-cyber">
+        <div class="brand-hero-panel">
+            <div class="brand-hero-chip">&#31995;&#32479;&#20837;&#21475;</div>
+            <div class="brand-hero-copy">
+                <h1>&#26657;&#21451;&#20869;&#25512;<br>&#20449;&#24687;&#31649;&#29702;&#19982;&#23545;&#25509;&#31995;&#32479;</h1>
+                <p>&#32858;&#21512;&#23703;&#20301;&#21457;&#24067;&#12289;&#31616;&#21382;&#25237;&#36882;&#12289;&#30003;&#35831;&#27969;&#36716;&#19982;&#27807;&#36890;&#21453;&#39304;&#65292;&#20026;&#23398;&#29983;&#12289;&#26657;&#21451;&#21644;&#31649;&#29702;&#31471;&#25552;&#20379;&#21516;&#19968;&#22871;&#32844;&#19994;&#21327;&#20316;&#20837;&#21475;&#12290;</p>
+            </div>
+            <div class="brand-hero-surface">
+                <div class="surface-grid surface-grid-a"></div>
+                <div class="surface-grid surface-grid-b"></div>
+                <div class="surface-beam surface-beam-a"></div>
+                <div class="surface-beam surface-beam-b"></div>
+                <div class="surface-card surface-card-main">
+                    <span>Student</span>
+                    <strong>岗位浏览与投递</strong>
+                </div>
+                <div class="surface-card surface-card-side">
+                    <span>Alumni</span>
+                    <strong>岗位发布与处理</strong>
+                </div>
+                <div class="surface-card surface-card-mini">
+                    <span>Admin</span>
+                    <strong>审核治理</strong>
+                </div>
+            </div>
         </div>
     </section>
-
-    <form class="login-card" id="login-form">
-        <h2>登录系统</h2>
-        <input name="username" placeholder="用户名" value="student" autocomplete="username">
-        <input name="password" type="password" placeholder="密码" value="student123" autocomplete="current-password">
-        <button type="submit">进入系统</button>
-        <div class="login-result" id="login-result">请输入账号密码后登录。</div>
-        <div class="login-note">前台支持学生和校友登录，后台管理员请使用后台地址进入管理端。</div>
-        <div class="login-switch">还没有账号？<a href="/register.html">立即注册</a></div>
-    </form>
 </div>
-<script src="/common.js?v=20260426-sidebar-work"></script>
-<script src="/login.js"></script>
+<script src="/common.js?v=20260427-login-brand-auth"></script>
+<script src="/login.js?v=20260427-login-brand-auth"></script>
 </body>
 </html>

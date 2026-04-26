@@ -20,6 +20,7 @@ public class JobInfoRespVO {
     private String experienceRequirement;
     private String skillRequirement;
     private String jobDesc;
+    private String contactType;
     private Integer referralQuota;
     private Integer status;
     private Integer auditStatus;

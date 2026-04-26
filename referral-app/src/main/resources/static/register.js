@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     if (payload.password !== payload.confirmPassword) {
-      resultEl.innerText = "两次密码输入不一致，请检查。";
+      resultEl.innerText = "两次输入的密码不一致，请重新检查。";
       return;
     }
     if (payload.password.length < 6) {
@@ -28,14 +28,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     delete payload.confirmPassword;
     payload.role = "STUDENT";
 
-    resultEl.innerText = "正在提交注册...";
+    resultEl.innerText = "正在提交注册信息...";
     try {
       const response = await apiRequest("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload)
       });
       saveSession(response.data);
-      resultEl.innerText = "注册成功，正在进入求职首页...";
+      resultEl.innerText = "注册成功，正在进入学生工作台...";
       location.href = response.data.landingPage || "/dashboard.html";
     } catch (error) {
       resultEl.innerText = error.message || "注册失败，请稍后重试。";

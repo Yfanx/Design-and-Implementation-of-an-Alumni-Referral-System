@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <p>每张卡片展示企业信息、岗位数量和可继续浏览的入口。</p>
         </div>
       </div>
-      <div id="company-card-list" class="job-card-list"></div>
+      <div id="company-card-list" class="job-card-list company-grid-cards"></div>
     </section>
   `);
 
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const count = companyJobCount(jobs, item.id);
     const keywords = companyJobKeywords(jobs, item.id);
     return `
-      <div class="job-card">
+      <div class="job-card company-card">
         <div class="job-card-top">
           <div>
             <h3 class="job-card-title">${item.companyName || "-"}</h3>
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   listNode.querySelectorAll(".company-jobs").forEach((button) => {
     button.addEventListener("click", () => {
       const query = new URLSearchParams({
-        keyword: button.dataset.name || ""
+        company: button.dataset.name || ""
       });
       location.href = `/jobs.html?${query.toString()}`;
     });

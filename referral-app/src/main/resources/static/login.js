@@ -1,4 +1,4 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
   const session = getSession();
   if (session) {
     location.href = session.landingPage || "/dashboard.html";
@@ -7,6 +7,8 @@
 
   const form = document.getElementById("login-form");
   const result = document.getElementById("login-result");
+  const usernameInput = form.querySelector('input[name="username"]');
+  const passwordInput = form.querySelector('input[name="password"]');
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -16,7 +18,7 @@
       body: JSON.stringify(payload)
     });
     saveSession(response.data);
-    result.innerText = "登录成功，正在进入工作台...";
+    result.innerText = "\u767b\u5f55\u6210\u529f\uff0c\u6b63\u5728\u8fdb\u5165\u5de5\u4f5c\u53f0...";
     location.href = response.data.landingPage || "/dashboard.html";
   });
 });

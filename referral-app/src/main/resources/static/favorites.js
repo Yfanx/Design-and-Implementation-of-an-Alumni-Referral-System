@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <p id="favorite-summary">当前已收藏 0 个岗位。</p>
         </div>
       </div>
-      <div id="favorite-job-list" class="job-card-list"></div>
+      <div id="favorite-job-list" class="job-card-list favorites-grid"></div>
     </section>
   `);
 
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const favoriteJobs = jobs.filter((item) => currentFavoriteIds.includes(item.id));
     updateSummary(favoriteJobs.length);
     listNode.innerHTML = favoriteJobs.map((item) => `
-      <div class="job-card" data-job-id="${item.id}">
+      <div class="job-card favorite-job-card" data-job-id="${item.id}">
         <div class="job-card-top">
           <div>
             <h3 class="job-card-title">${item.jobTitle}</h3>

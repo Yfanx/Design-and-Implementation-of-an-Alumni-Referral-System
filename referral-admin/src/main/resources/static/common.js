@@ -607,3 +607,99 @@ function renderAttachmentLink(url, label = "查看附件") {
   }
   return `<span class="attachment-actions attachment-action-group"><a class="attachment-action attachment-action-secondary" href="${safeUrl}" target="_blank" rel="noreferrer"><span class="attachment-action-icon">文件</span><span>${label}</span></a></span>`;
 }
+
+function getRoleConfig(role) {
+  const adminMenus = [
+    { key: "dashboard", group: "总览", label: "管理首页", shortLabel: "首页", desc: "查看审核与治理概况", href: "/dashboard.html" },
+    { key: "auditCenter", group: "审核治理", label: "审核工作台", shortLabel: "审核", desc: "集中处理待审与推进事项", href: "/audit-center.html" },
+    { key: "jobs", group: "审核治理", label: "岗位审核", shortLabel: "岗位", desc: "审核校友发布岗位", href: "/jobs.html" },
+    { key: "applications", group: "审核治理", label: "申请记录", shortLabel: "申请", desc: "查看投递流转记录", href: "/applications.html" },
+    { key: "consults", group: "审核治理", label: "咨询记录", shortLabel: "咨询", desc: "查看前台沟通记录", href: "/consults.html" },
+    { key: "students", group: "主体管理", label: "学生管理", shortLabel: "学生", desc: "管理学生资料与状态", href: "/students.html" },
+    { key: "alumni", group: "主体管理", label: "校友管理", shortLabel: "校友", desc: "管理校友档案与企业关系", href: "/alumni.html" },
+    { key: "companies", group: "主体管理", label: "企业管理", shortLabel: "企业", desc: "查看企业及岗位来源", href: "/companies.html" },
+    { key: "profile", group: "账户中心", label: "我的资料", shortLabel: "资料", desc: "查看当前管理员资料", href: "/profile.html" }
+  ];
+
+  return {
+    title: "校友内推平台",
+    subtitle: "管理端",
+    menus: adminMenus
+  };
+}
+
+function roleText(role) {
+  return { ADMIN: "管理员", STUDENT: "学生", ALUMNI: "校友" }[role] || role;
+}
+
+function renderAppLayout(pageKey, title, subtitle, mainContent) {
+  const session = ensureLogin();
+  ensurePageAccess(pageKey, session);
+  const roleConfig = getRoleConfig(session.role);
+  const menus = roleConfig.menus.filter((item) => session.menus.includes(item.key));
+  const roleName = roleText(session.role);
+  const roleSummary = "审核治理与数据总览";
+  const groupOrder = [...new Set(menus.map((item) => item.group || "功能"))];
+  const groupedMenus = groupOrder.map((group) => ({
+    group,
+    items: menus.filter((item) => (item.group || "功能") === group)
+  }));
+
+  document.title = `${title} - 校友内推平台`;
+  document.getElementById("app").innerHTML = `
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-inner">
+          <div class="sidebar-top modern-sidebar-top">
+            <div class="brand-wrap">
+              <div class="brand-mark">校</div>
+              <div class="brand-copy">
+                <div class="brand">校友内推平台</div>
+                <div class="brand-sub">${roleConfig.subtitle}</div>
+              </div>
+            </div>
+          </div>
+          <div class="user-card modern-user-card">
+            <div class="name">${session.displayName}</div>
+            <div class="meta">${roleName}账号</div>
+            <div class="meta subtle">${session.username}</div>
+          </div>
+          <nav class="menu">
+            ${groupedMenus.map((section) => `
+              <div class="menu-group">
+                ${section.items.map((item) => `
+                  <a class="${item.key === pageKey ? "active" : ""}" href="${item.href}" title="${item.label}">
+                    <span class="menu-short">${item.shortLabel}</span>
+                    <span class="menu-copy">
+                      <span class="menu-label">${item.label}</span>
+                    </span>
+                  </a>
+                `).join("")}
+              </div>
+            `).join("")}
+          </nav>
+          <button class="btn logout-btn" type="button" onclick="logout()">退出登录</button>
+        </div>
+      </aside>
+      <main class="content">
+        <div class="workspace-topbar">
+          <div class="workspace-meta">
+            <span class="workspace-chip">${roleName}</span>
+            <span class="workspace-chip workspace-chip-muted">${roleSummary}</span>
+            <span class="workspace-avatar">${String(session.displayName || "?").slice(0, 1)}</span>
+          </div>
+        </div>
+        <div class="page-title modern-page-title">
+          <div>
+            <h1>${title}</h1>
+            ${subtitle ? `<p>${subtitle}</p>` : ""}
+          </div>
+          <div class="page-title-side">
+            <div class="pill">${session.displayName}</div>
+          </div>
+        </div>
+        ${mainContent}
+      </main>
+    </div>
+  `;
+}

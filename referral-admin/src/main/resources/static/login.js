@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
       body: JSON.stringify(payload)
     });
     saveSession(response.data);
-    result.innerText = "登录成功，正在进入后台工作台...";
+    result.innerText = "\u767b\u5f55\u6210\u529f\uff0c\u6b63\u5728\u8fdb\u5165\u7ba1\u7406\u53f0...";
     location.href = response.data.landingPage || "/dashboard.html";
   });
 });

@@ -107,23 +107,34 @@ async function apiRequest(url, options = {}) {
 
 function getRoleConfig(role) {
   const studentMenus = [
-    { key: "dashboard", label: "求职首页", shortLabel: "首页", desc: "查看岗位推荐和投递进度", href: "/dashboard.html" },
-    { key: "jobs", label: "职位广场", shortLabel: "职位", desc: "浏览并筛选内推岗位", href: "/jobs.html" },
-    { key: "favorites", label: "岗位收藏", shortLabel: "收藏", desc: "查看已收藏的岗位", href: "/favorites.html" },
-    { key: "companies", label: "企业总览", shortLabel: "企业", desc: "查看企业信息和开放岗位", href: "/companies.html" },
-    { key: "applications", label: "我的申请", shortLabel: "申请", desc: "跟踪已投递申请状态", href: "/applications.html" },
-    { key: "consults", label: "消息中心", shortLabel: "消息", desc: "和校友围绕岗位继续沟通", href: "/consults.html" },
-    { key: "profile", label: "我的资料", shortLabel: "资料", desc: "维护简历和个人信息", href: "/profile.html" }
+    { key: "dashboard", group: "总览", label: "求职首页", shortLabel: "首页", desc: "岗位推荐与求职节奏", href: "/dashboard.html" },
+    { key: "jobs", group: "求职流程", label: "职位广场", shortLabel: "职位", desc: "筛选并查看内推岗位", href: "/jobs.html" },
+    { key: "favorites", group: "求职流程", label: "岗位收藏", shortLabel: "收藏", desc: "集中管理意向岗位", href: "/favorites.html" },
+    { key: "companies", group: "求职流程", label: "企业总览", shortLabel: "企业", desc: "查看企业与开放岗位", href: "/companies.html" },
+    { key: "applications", group: "求职流程", label: "我的申请", shortLabel: "申请", desc: "跟踪投递与处理状态", href: "/applications.html" },
+    { key: "consults", group: "协同沟通", label: "消息中心", shortLabel: "消息", desc: "围绕岗位继续沟通", href: "/consults.html" },
+    { key: "profile", group: "个人中心", label: "我的资料", shortLabel: "资料", desc: "维护简历和个人信息", href: "/profile.html" }
   ];
   const alumniMenus = [
-    { key: "dashboard", label: "校友工作台", shortLabel: "工作", desc: "查看岗位、申请和咨询概览", href: "/dashboard.html" },
-    { key: "companies", label: "内推企业", shortLabel: "企业", desc: "查看和维护关联企业信息", href: "/companies.html" },
-    { key: "jobs", label: "岗位管理", shortLabel: "岗位", desc: "发布并管理内推岗位", href: "/jobs.html" },
-    { key: "applications", label: "申请处理", shortLabel: "申请", desc: "处理学生投递和流程推进", href: "/applications.html" },
-    { key: "consults", label: "咨询回复", shortLabel: "消息", desc: "回复学生围绕岗位的咨询", href: "/consults.html" },
-    { key: "profile", label: "我的资料", shortLabel: "资料", desc: "维护校友档案和附件", href: "/profile.html" }
+    { key: "dashboard", group: "总览", label: "校友工作台", shortLabel: "工作", desc: "岗位与申请概览", href: "/dashboard.html" },
+    { key: "companies", group: "岗位协同", label: "内推企业", shortLabel: "企业", desc: "查看和维护关联企业", href: "/companies.html" },
+    { key: "jobs", group: "岗位协同", label: "岗位管理", shortLabel: "岗位", desc: "发布并维护内推岗位", href: "/jobs.html" },
+    { key: "applications", group: "岗位协同", label: "申请处理", shortLabel: "申请", desc: "推进学生投递流程", href: "/applications.html" },
+    { key: "consults", group: "协同沟通", label: "咨询回复", shortLabel: "消息", desc: "回复学生岗位咨询", href: "/consults.html" },
+    { key: "profile", group: "个人中心", label: "我的资料", shortLabel: "资料", desc: "维护校友档案与附件", href: "/profile.html" }
   ];
   const configs = {
+    ADMIN: {
+      title: "校友内推平台",
+      subtitle: "管理端",
+      menus: [
+        { key: "jobs", group: "审核治理", label: "岗位审核", shortLabel: "岗位", desc: "审核校友发布岗位", href: "/jobs.html" },
+        { key: "applications", group: "审核治理", label: "申请记录", shortLabel: "申请", desc: "查看申请全局流转", href: "/applications.html" },
+        { key: "students", group: "主体管理", label: "学生管理", shortLabel: "学生", desc: "查看学生求职资料", href: "/students.html" },
+        { key: "alumni", group: "主体管理", label: "校友管理", shortLabel: "校友", desc: "维护校友档案状态", href: "/alumni.html" },
+        { key: "companies", group: "主体管理", label: "企业管理", shortLabel: "企业", desc: "查看企业与岗位来源", href: "/companies.html" }
+      ]
+    },
     STUDENT: { title: "校友内推平台", subtitle: "学生端", menus: studentMenus },
     ALUMNI: { title: "校友内推平台", subtitle: "校友端", menus: alumniMenus }
   };
@@ -131,7 +142,7 @@ function getRoleConfig(role) {
 }
 
 function roleText(role) {
-  return { STUDENT: "学生", ALUMNI: "校友" }[role] || role;
+  return { ADMIN: "管理员", STUDENT: "学生", ALUMNI: "校友" }[role] || role;
 }
 
 function ensurePageAccess(pageKey, session) {
@@ -169,40 +180,70 @@ function renderAppLayout(pageKey, title, subtitle, mainContent) {
   ensurePageAccess(pageKey, session);
   const roleConfig = getRoleConfig(session.role);
   const menus = roleConfig.menus.filter((item) => session.menus.includes(item.key));
+  const roleName = roleText(session.role);
+  const roleSummary = {
+    STUDENT: "岗位浏览与投递",
+    ALUMNI: "内推岗位与申请处理",
+    ADMIN: "审核治理与数据总览"
+  }[session.role] || "平台工作台";
+  const groupOrder = [...new Set(menus.map((item) => item.group || "功能"))];
+  const groupedMenus = groupOrder.map((group) => ({
+    group,
+    items: menus.filter((item) => (item.group || "功能") === group)
+  }));
 
   document.title = `${title} - 校友内推平台`;
   document.getElementById("app").innerHTML = `
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar-inner">
-          <div class="sidebar-top">
+          <div class="sidebar-top modern-sidebar-top">
             <div class="brand-wrap">
-              <div class="brand">${roleConfig.title}</div>
-              <div class="brand-subtitle">${roleConfig.subtitle}</div>
+              <div class="brand-mark">校</div>
+              <div class="brand-copy">
+                <div class="brand">校友内推平台</div>
+                <div class="brand-sub">${roleConfig.subtitle}</div>
+              </div>
             </div>
           </div>
-          <div class="user-card">
+          <div class="user-card modern-user-card">
             <div class="name">${session.displayName}</div>
-            <div class="meta">${roleText(session.role)} / ${session.username}</div>
+            <div class="meta">${roleName}账号</div>
+            <div class="meta subtle">${session.username}</div>
           </div>
           <nav class="menu">
-            ${menus.map((item) => `
-              <a class="${item.key === pageKey ? "active" : ""}" href="${item.href}" title="${item.label}">
-                <span class="menu-short">${item.shortLabel}</span>
-                <span class="menu-copy">
-                  <span class="menu-label">${item.label}</span>
-                  <small>${item.desc}</small>
-                </span>
-              </a>
+            ${groupedMenus.map((section) => `
+              <div class="menu-group">
+                ${section.items.map((item) => `
+                  <a class="${item.key === pageKey ? "active" : ""}" href="${item.href}" title="${item.label}">
+                    <span class="menu-short">${item.shortLabel}</span>
+                    <span class="menu-copy">
+                      <span class="menu-label">${item.label}</span>
+                    </span>
+                  </a>
+                `).join("")}
+              </div>
             `).join("")}
           </nav>
           <button class="btn logout-btn" type="button" onclick="logout()">退出登录</button>
         </div>
       </aside>
       <main class="content">
-        <div class="page-title">
-          <h1>${title}</h1>
-          <p>${subtitle}</p>
+        <div class="workspace-topbar">
+          <div class="workspace-meta">
+            <span class="workspace-chip">${roleName}</span>
+            <span class="workspace-chip workspace-chip-muted">${roleSummary}</span>
+            <span class="workspace-avatar">${String(session.displayName || "?").slice(0, 1)}</span>
+          </div>
+        </div>
+        <div class="page-title modern-page-title">
+          <div>
+            <h1>${title}</h1>
+            ${subtitle ? `<p>${subtitle}</p>` : ""}
+          </div>
+          <div class="page-title-side">
+            <div class="pill">${session.displayName}</div>
+          </div>
         </div>
         ${mainContent}
       </main>
@@ -382,6 +423,20 @@ function getAttachmentExtension(url = "") {
   return dotIndex === -1 ? "" : filename.slice(dotIndex + 1).toLowerCase();
 }
 
+function getAttachmentFilename(url = "") {
+  const safeUrl = sanitizeAttachmentUrl(url);
+  if (!safeUrl) {
+    return "";
+  }
+  const pathname = new URL(safeUrl).pathname;
+  const filename = pathname.split("/").pop() || "";
+  try {
+    return decodeURIComponent(filename);
+  } catch {
+    return filename;
+  }
+}
+
 function isImageUrl(url = "") {
   return ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(getAttachmentExtension(url));
 }
@@ -424,7 +479,7 @@ function buildAttachmentOpenUrl(url = "") {
     return "#";
   }
   if (isPdfUrl(safeUrl) || isImageUrl(safeUrl)) {
-    return `/attachment-viewer.html?url=${encodeURIComponent(safeUrl)}`;
+    return `/attachment-viewer.html?url=${encodeURIComponent(safeUrl)}&name=${encodeURIComponent(getAttachmentFilename(safeUrl))}`;
   }
   return safeUrl;
 }
@@ -604,11 +659,11 @@ function renderAttachmentLink(url, label = "查看附件") {
     return `
       <span class="attachment-actions attachment-action-group">
         <button type="button" class="attachment-action attachment-preview-trigger" data-url="${safeUrl}">
-          <span class="attachment-action-icon">预览</span>
+          <span class="attachment-action-icon">看</span>
           <span>${label}</span>
         </button>
         <a class="attachment-action attachment-action-secondary" href="${openUrl}" target="_blank" rel="noreferrer">
-          <span class="attachment-action-icon">打开</span>
+          <span class="attachment-action-icon">开</span>
           <span>新窗口打开</span>
         </a>
       </span>
@@ -617,7 +672,7 @@ function renderAttachmentLink(url, label = "查看附件") {
   return `
     <span class="attachment-actions attachment-action-group">
       <a class="attachment-action attachment-action-secondary" href="${openUrl}" target="_blank" rel="noreferrer">
-        <span class="attachment-action-icon">打开</span>
+        <span class="attachment-action-icon">开</span>
         <span>${label}</span>
       </a>
     </span>
@@ -633,7 +688,24 @@ function renderAttachmentPreview(url) {
     return `<div class="attachment-preview-card"><img class="attachment-image" src="${safeUrl}" alt="Attachment preview"></div>`;
   }
   if (isPdfUrl(safeUrl)) {
-    return `<div class="attachment-preview-card attachment-generic">${renderAttachmentLink(safeUrl, "打开 PDF")}</div>`;
+    return `
+      <div class="attachment-preview-card attachment-preview-document">
+        <div class="attachment-preview-head">
+          <div>
+            <strong>PDF 预览</strong>
+            <div class="document-caption">当前页直接查看，保留新窗口独立打开入口。</div>
+          </div>
+          <span class="document-metric">PDF</span>
+        </div>
+        <iframe
+          class="attachment-preview-frame"
+          src="${buildAttachmentOpenUrl(safeUrl)}&embed=1"
+          title="PDF 预览"
+          loading="lazy">
+        </iframe>
+        <div class="document-actions">${renderAttachmentLink(safeUrl, "查看 PDF")}</div>
+      </div>
+    `;
   }
   return `<div class="attachment-preview-card attachment-generic">${renderAttachmentLink(safeUrl, "下载附件")}</div>`;
 }
