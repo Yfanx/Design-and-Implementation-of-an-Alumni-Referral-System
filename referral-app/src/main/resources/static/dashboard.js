@@ -29,8 +29,9 @@ async function fetchAlumniDashboardBundle(session) {
 }
 
 function buildRecommendedJobs(jobs) {
+  const hotCities = ["上海", "杭州", "北京", "深圳"];
   return (jobs || [])
-    .filter((item) => ["上海", "杭州", "北京", "深圳"].includes(item.city))
+    .filter((item) => hotCities.includes(item.city))
     .sort((left, right) => Number(right.id || 0) - Number(left.id || 0))
     .slice(0, 3);
 }
@@ -41,11 +42,11 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
   const interviewReady = myApplications.filter((item) => Number(item.applyStatus) === 2 || Number(item.applyStatus) === 4).length;
   const recommendedJobs = buildRecommendedJobs(bundle.jobs);
 
-  renderAppLayout("dashboard", "求职首页", "集中查看推荐职位、投递进度和最近消息。", `
+  renderAppLayout("dashboard", "求职首页", "集中查看岗位推荐、投递进度和最近消息。", `
     <section class="job-search-hero">
       <div class="hero-panel reveal">
-        <span class="hero-badge">Career Feed</span>
-        <h2>今天值得优先查看的校友内推职位</h2>
+        <span class="hero-badge">求职动态</span>
+        <h2>今天值得优先查看的校友内推岗位</h2>
         <p>从推荐岗位直接进入详情、收藏和申请，形成完整的求职操作链路。</p>
         <div class="search-bar">
           <input id="student-keyword" placeholder="搜索职位、公司或技能关键词">
@@ -72,11 +73,11 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
         <div id="dashboard-summary" class="market-marquee"></div>
       </div>
       <div class="panel floating-panel reveal reveal-delay-1">
-        <div class="section-eyebrow">My Pipeline</div>
+        <div class="section-eyebrow">我的进度</div>
         <div class="panel-header">
           <div>
             <h2>我的求职节奏</h2>
-            <p>把收藏、投递、处理进度和消息提醒放在同一视图里。</p>
+            <p>把收藏、投递、处理进度和消息提醒放在同一个视图里。</p>
           </div>
         </div>
         <div class="cards">
@@ -88,7 +89,7 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
       </div>
     </section>
     <section class="panel reveal reveal-delay-1">
-      <div class="section-eyebrow">Recommended</div>
+      <div class="section-eyebrow">推荐岗位</div>
       <div class="panel-header">
         <div>
           <h2>推荐职位</h2>
@@ -98,9 +99,9 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
       <div id="recommended-job-list" class="job-card-list"></div>
     </section>
     <section class="feature-grid reveal reveal-delay-2">
-      <div class="feature-card"><span class="section-eyebrow">Feature 01</span><strong>职位收藏</strong><p>先保存感兴趣的岗位，再统一比较和投递。</p></div>
-      <div class="feature-card"><span class="section-eyebrow">Feature 02</span><strong>进度跟踪</strong><p>每条申请都能看到状态变化和处理备注。</p></div>
-      <div class="feature-card"><span class="section-eyebrow">Feature 03</span><strong>校友沟通</strong><p>围绕具体岗位直接咨询校友，更贴近真实产品使用场景。</p></div>
+      <div class="feature-card"><span class="section-eyebrow">功能一</span><strong>职位收藏</strong><p>先保存感兴趣的岗位，再统一比较和投递。</p></div>
+      <div class="feature-card"><span class="section-eyebrow">功能二</span><strong>进度跟踪</strong><p>每条申请都能看到状态变化和处理备注。</p></div>
+      <div class="feature-card"><span class="section-eyebrow">功能三</span><strong>校友沟通</strong><p>围绕具体岗位直接咨询校友，更贴近真实产品使用场景。</p></div>
     </section>
     <section class="grid-2 reveal reveal-delay-3">
       <div class="panel">
