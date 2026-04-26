@@ -6,10 +6,10 @@ async function fetchStudentDashboardBundle(session) {
     apiRequest("/referral/consult-message/list")
   ]);
   return {
-    overview: overview.data,
-    jobs: jobs.data.list || [],
-    applications: (applications.data.list || []).filter((item) => item.studentId === session.profileId),
-    consults: (consults.data.list || []).filter((item) => item.senderUserId === session.userId || item.receiverUserId === session.userId)
+    overview: overview.data || {},
+    jobs: jobs.data?.list || [],
+    applications: (applications.data?.list || []).filter((item) => Number(item.studentId) === Number(session.profileId)),
+    consults: (consults.data?.list || []).filter((item) => Number(item.senderUserId) === Number(session.userId) || Number(item.receiverUserId) === Number(session.userId))
   };
 }
 
@@ -21,24 +21,24 @@ async function fetchAlumniDashboardBundle(session) {
     apiRequest("/referral/consult-message/list")
   ]);
   return {
-    overview: overview.data,
-    jobs: jobs.data.list || [],
-    applications: applications.data.list || [],
-    consults: (consults.data.list || []).filter((item) => item.senderUserId === session.userId || item.receiverUserId === session.userId)
+    overview: overview.data || {},
+    jobs: jobs.data?.list || [],
+    applications: applications.data?.list || [],
+    consults: (consults.data?.list || []).filter((item) => Number(item.senderUserId) === Number(session.userId) || Number(item.receiverUserId) === Number(session.userId))
   };
 }
 
 function buildRecommendedJobs(jobs) {
-  return jobs
+  return (jobs || [])
     .filter((item) => ["上海", "杭州", "北京", "深圳"].includes(item.city))
-    .sort((first, second) => (second.id || 0) - (first.id || 0))
+    .sort((left, right) => Number(right.id || 0) - Number(left.id || 0))
     .slice(0, 3);
 }
 
 function renderStudentDashboard(session, bundle, favoriteIds) {
-  const myApplications = bundle.applications;
-  const myConsults = bundle.consults.slice(0, 5);
-  const interviewReady = myApplications.filter((item) => item.applyStatus === 2 || item.applyStatus === 4).length;
+  const myApplications = bundle.applications || [];
+  const myConsults = (bundle.consults || []).slice(0, 5);
+  const interviewReady = myApplications.filter((item) => Number(item.applyStatus) === 2 || Number(item.applyStatus) === 4).length;
   const recommendedJobs = buildRecommendedJobs(bundle.jobs);
 
   renderAppLayout("dashboard", "求职首页", "集中查看推荐职位、投递进度和最近消息。", `
@@ -82,7 +82,7 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
         <div class="cards">
           <div class="card"><div class="card-label">在招职位</div><div class="card-value">${bundle.jobs.length}</div><div class="card-sub">当前全部可投递岗位</div></div>
           <div class="card"><div class="card-label">我的申请</div><div class="card-value">${myApplications.length}</div><div class="card-sub">已经提交的内推申请</div></div>
-          <div class="card"><div class="card-label">已处理</div><div class="card-value">${myApplications.filter((item) => item.applyStatus !== 0).length}</div><div class="card-sub">校友已查看或已推进</div></div>
+          <div class="card"><div class="card-label">已处理</div><div class="card-value">${myApplications.filter((item) => Number(item.applyStatus) !== 0).length}</div><div class="card-sub">校友已查看或已推进</div></div>
           <div class="card"><div class="card-label">消息提醒</div><div class="card-value">${myConsults.length}</div><div class="card-sub">最近相关沟通消息</div></div>
         </div>
       </div>
@@ -100,18 +100,18 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
     <section class="feature-grid reveal reveal-delay-2">
       <div class="feature-card"><span class="section-eyebrow">Feature 01</span><strong>职位收藏</strong><p>先保存感兴趣的岗位，再统一比较和投递。</p></div>
       <div class="feature-card"><span class="section-eyebrow">Feature 02</span><strong>进度跟踪</strong><p>每条申请都能看到状态变化和处理备注。</p></div>
-      <div class="feature-card"><span class="section-eyebrow">Feature 03</span><strong>校友沟通</strong><p>围绕具体岗位直接咨询校友，更贴近真实产品。</p></div>
+      <div class="feature-card"><span class="section-eyebrow">Feature 03</span><strong>校友沟通</strong><p>围绕具体岗位直接咨询校友，更贴近真实产品使用场景。</p></div>
     </section>
     <section class="grid-2 reveal reveal-delay-3">
       <div class="panel">
         <div class="panel-header"><div><h2>我的申请</h2><p>最近投递状态变化。</p></div></div>
         <div class="timeline">
           ${myApplications.slice(0, 4).map((item) => {
-            const badge = statusBadge(item.applyStatus);
+            const badge = statusBadge(Number(item.applyStatus));
             return `
               <div class="timeline-item">
                 <div class="split-header">
-                  <div><strong>${item.jobTitle}</strong><div class="job-card-company">${item.alumniName}</div></div>
+                  <div><strong>${item.jobTitle || "-"}</strong><div class="job-card-company">${item.alumniName || "-"}</div></div>
                   <span class="status-badge ${badge.cls}">${badge.text}</span>
                 </div>
                 <div class="meta-row"><span class="meta-tag">${item.processRemark || "等待处理"}</span></div>
@@ -125,8 +125,8 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
         <div class="compact-list">
           ${myConsults.map((item) => `
             <div class="compact-item">
-              <strong>职位 ${item.jobId}</strong>
-              <div class="job-card-company">${item.content}</div>
+              <strong>岗位 ${item.jobId || "-"}</strong>
+              <div class="job-card-company">${item.content || "-"}</div>
             </div>
           `).join("") || `<div class="compact-item">暂时没有消息。</div>`}
         </div>
@@ -149,7 +149,7 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
         <div class="job-card-top">
           <div>
             <span class="job-card-company">${job.companyName || "校友企业"}</span>
-            <h3>${job.jobTitle}</h3>
+            <h3>${job.jobTitle || "-"}</h3>
           </div>
           <span class="match-badge">${job.city || "城市待定"}</span>
         </div>
@@ -190,16 +190,16 @@ function renderStudentDashboard(session, bundle, favoriteIds) {
 }
 
 function renderAlumniDashboard(bundle) {
-  const recommendedCount = bundle.applications.filter((item) => item.applyStatus === 2 || item.applyStatus === 4).length;
-  const pendingCount = bundle.applications.filter((item) => item.applyStatus === 0 || item.applyStatus === 1).length;
-  const unreadConsults = bundle.consults.filter((item) => item.readStatus !== 1).length;
+  const recommendedCount = (bundle.applications || []).filter((item) => Number(item.applyStatus) === 2 || Number(item.applyStatus) === 4).length;
+  const pendingCount = (bundle.applications || []).filter((item) => Number(item.applyStatus) === 0 || Number(item.applyStatus) === 1).length;
+  const unreadConsults = (bundle.consults || []).filter((item) => Number(item.readStatus) !== 1).length;
 
   renderAppLayout("dashboard", "校友工作台", "从岗位发布、学生申请和消息沟通三个方向查看当前内推工作。", `
     <section class="panel reveal">
       <div class="panel-header">
         <div>
           <h2>我的工作面板</h2>
-          <p>这部分适合演示校友如何从岗位发布走到申请处理和沟通反馈。</p>
+          <p>适合答辩时演示校友如何从发布岗位走到处理申请和沟通反馈。</p>
         </div>
       </div>
       <div class="cards">
@@ -213,12 +213,12 @@ function renderAlumniDashboard(bundle) {
       <div class="panel">
         <div class="panel-header"><div><h2>最近岗位</h2><p>可以从这里继续查看审核状态和发布进度。</p></div></div>
         <div class="compact-list">
-          ${bundle.jobs.slice(0, 5).map((item) => {
-            const badge = jobAuditBadge(item.auditStatus);
+          ${(bundle.jobs || []).slice(0, 5).map((item) => {
+            const badge = jobAuditBadge(Number(item.auditStatus));
             return `
               <div class="compact-item">
                 <div class="split-header">
-                  <strong>${item.jobTitle}</strong>
+                  <strong>${item.jobTitle || "-"}</strong>
                   <span class="status-badge ${badge.cls}">${badge.text}</span>
                 </div>
                 <p>${item.companyName || "未绑定企业"} / ${item.city || "城市待定"}</p>
@@ -230,10 +230,10 @@ function renderAlumniDashboard(bundle) {
       <div class="panel">
         <div class="panel-header"><div><h2>最近消息</h2><p>展示围绕岗位的最新沟通内容。</p></div></div>
         <div class="compact-list">
-          ${bundle.consults.slice(0, 6).map((item) => `
+          ${(bundle.consults || []).slice(0, 6).map((item) => `
             <div class="compact-item">
-              <strong>岗位 ${item.jobId}</strong>
-              <p>${item.content}</p>
+              <strong>岗位 ${item.jobId || "-"}</strong>
+              <p>${item.content || "-"}</p>
             </div>
           `).join("") || `<div class="compact-item">当前没有新的沟通消息。</div>`}
         </div>
@@ -246,7 +246,7 @@ function renderAlumniDashboard(bundle) {
     </section>
     <section class="panel reveal reveal-delay-3">
       <div class="page-action-bar">
-        <div class="page-action-note">当前未读消息 ${unreadConsults} 条，建议优先处理待审核岗位与待跟进申请。</div>
+        <div class="page-action-note">当前未读消息 ${unreadConsults} 条，建议优先处理待跟进申请与沟通线程。</div>
         <div class="action-group">
           <a class="btn" href="/jobs.html">去管理岗位</a>
           <a class="btn ghost-btn" href="/applications.html">去处理申请</a>
