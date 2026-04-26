@@ -3787,6 +3787,22 @@ body {
     gap: 16px;
 }
 
+.register-page-scroll {
+    overflow-x: hidden;
+    overflow-y: auto;
+    align-items: start;
+}
+
+.register-shell-scroll {
+    min-height: auto;
+    overflow: visible;
+}
+
+.register-shell-scroll .login-card-cyber,
+.register-shell-scroll .login-hero-cyber {
+    min-height: auto;
+}
+
 .role-switch {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
