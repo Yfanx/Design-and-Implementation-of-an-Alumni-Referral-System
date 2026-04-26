@@ -13,22 +13,28 @@ function calculateMatchScore(job) {
 
 async function loadStudentJobs() {
   const result = await apiRequest("/referral/job-info/match-list");
-  return result.data.list || [];
+  return result.data?.list || [];
 }
 
 async function loadAlumniJobs() {
   const result = await apiRequest("/referral/job-info/list");
-  return result.data.list || [];
+  return result.data?.list || [];
 }
 
-function openJobEditor({ title, subtitle, initial = {}, onSubmit }) {
-  const safe = {
+async function loadCurrentAlumniProfile(session) {
+  const result = await apiRequest(`/referral/alumni-info/get?id=${session.profileId}`);
+  return result.data || {};
+}
+
+function buildJobFormInitial(alumniProfile, initial = {}) {
+  return {
     id: initial.id || "",
-    companyId: initial.companyId || "3001",
+    companyId: initial.companyId || alumniProfile.companyId || "",
+    companyName: initial.companyName || alumniProfile.companyName || "",
     jobTitle: initial.jobTitle || "",
     jobType: initial.jobType || "校招",
-    industry: initial.industry || "互联网",
-    city: initial.city || "上海",
+    industry: initial.industry || alumniProfile.industry || "互联网",
+    city: initial.city || alumniProfile.city || "上海",
     salaryRange: initial.salaryRange || "",
     educationRequirement: initial.educationRequirement || "本科",
     experienceRequirement: initial.experienceRequirement || "",
@@ -38,6 +44,11 @@ function openJobEditor({ title, subtitle, initial = {}, onSubmit }) {
     referralQuota: initial.referralQuota || 3,
     expireTime: initial.expireTime || ""
   };
+}
+
+function openJobEditor({ title, subtitle, alumniProfile, initial = {}, onSubmit }) {
+  const safe = buildJobFormInitial(alumniProfile, initial);
+  const hasCompanyBinding = !!safe.companyId && !!safe.companyName;
 
   openPageModal({
     title,
@@ -46,10 +57,15 @@ function openJobEditor({ title, subtitle, initial = {}, onSubmit }) {
     body: `
       <form class="demo-form" id="job-editor-form">
         <input type="hidden" name="id" value="${safe.id}">
+        <input type="hidden" name="companyId" value="${safe.companyId}">
         <div class="form-grid">
           <label class="form-field">
-            <span>企业 ID</span>
-            <input name="companyId" value="${safe.companyId}" placeholder="例如：3001">
+            <span>归属企业</span>
+            <input value="${safe.companyName || "请先在我的资料中维护企业信息"}" readonly>
+          </label>
+          <label class="form-field">
+            <span>企业编号</span>
+            <input value="${safe.companyId || "未绑定"}" readonly>
           </label>
           <label class="form-field">
             <span>岗位名称</span>
@@ -98,7 +114,7 @@ function openJobEditor({ title, subtitle, initial = {}, onSubmit }) {
             <input name="experienceRequirement" value="${safe.experienceRequirement}" placeholder="例如：有项目经验 / 1-3 年">
           </label>
           <label class="form-field">
-            <span>联系方式</span>
+            <span>联系形式</span>
             <select name="contactType">
               <option value="站内沟通" ${safe.contactType === "站内沟通" ? "selected" : ""}>站内沟通</option>
               <option value="邮箱" ${safe.contactType === "邮箱" ? "selected" : ""}>邮箱</option>
@@ -119,10 +135,11 @@ function openJobEditor({ title, subtitle, initial = {}, onSubmit }) {
           </label>
         </div>
         <div class="page-action-bar top-gap">
-          <div class="page-action-note">提交后会进入待审核状态；如果是编辑已审核岗位，也会重新进入审核队列。</div>
+          <div class="page-action-note">${hasCompanyBinding ? "岗位会自动归属到你在“我的资料”中维护的企业，提交后进入待审核状态。" : "请先到“我的资料”中补充所属企业信息，再发布岗位。"}</div>
           <div class="action-group">
+            ${hasCompanyBinding ? "" : `<a class="btn ghost-btn" href="/profile.html">去完善资料</a>`}
             <button type="button" class="btn ghost-btn" id="job-editor-cancel">取消</button>
-            <button type="submit" class="btn" id="job-editor-submit">保存岗位</button>
+            <button type="submit" class="btn" id="job-editor-submit" ${hasCompanyBinding ? "" : "disabled"}>保存岗位</button>
           </div>
         </div>
       </form>
@@ -132,6 +149,9 @@ function openJobEditor({ title, subtitle, initial = {}, onSubmit }) {
       body.querySelector("#job-editor-cancel").addEventListener("click", closePageModal);
       body.querySelector("#job-editor-form").addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (!hasCompanyBinding) {
+          return;
+        }
         const payload = formPayload(event.target);
         const result = body.querySelector("#job-editor-result");
         result.innerText = "正在保存岗位...";
@@ -159,15 +179,22 @@ function renderStudentJobs(session, jobs, favoriteIds) {
 
   renderAppLayout("jobs", "职位广场", "按照行业、城市和关键词筛选校友内推岗位。", `
     <section class="panel reveal">
-      <div class="section-eyebrow">Job Market</div>
+      <div class="section-eyebrow">职位市场</div>
       <div class="panel-header"><div><h2>岗位筛选</h2><p>更像招聘产品的职位广场布局，支持边筛选边查看。</p></div></div>
       <div class="search-bar">
         <input id="job-keyword" value="${keyword}" placeholder="搜索岗位名称、公司或技能关键词">
         <select id="job-city">
-          <option value="">城市不限</option><option value="上海" ${city === "上海" ? "selected" : ""}>上海</option><option value="杭州" ${city === "杭州" ? "selected" : ""}>杭州</option><option value="北京" ${city === "北京" ? "selected" : ""}>北京</option><option value="深圳" ${city === "深圳" ? "selected" : ""}>深圳</option>
+          <option value="">城市不限</option>
+          <option value="上海" ${city === "上海" ? "selected" : ""}>上海</option>
+          <option value="杭州" ${city === "杭州" ? "selected" : ""}>杭州</option>
+          <option value="北京" ${city === "北京" ? "selected" : ""}>北京</option>
+          <option value="深圳" ${city === "深圳" ? "selected" : ""}>深圳</option>
         </select>
         <select id="job-industry">
-          <option value="">行业不限</option><option value="互联网" ${industry === "互联网" ? "selected" : ""}>互联网</option><option value="人工智能" ${industry === "人工智能" ? "selected" : ""}>人工智能</option><option value="金融科技" ${industry === "金融科技" ? "selected" : ""}>金融科技</option>
+          <option value="">行业不限</option>
+          <option value="互联网" ${industry === "互联网" ? "selected" : ""}>互联网</option>
+          <option value="人工智能" ${industry === "人工智能" ? "selected" : ""}>人工智能</option>
+          <option value="金融科技" ${industry === "金融科技" ? "selected" : ""}>金融科技</option>
         </select>
         <button class="btn" id="search-job-btn">筛选职位</button>
       </div>
@@ -210,7 +237,7 @@ function renderStudentJobs(session, jobs, favoriteIds) {
           <div class="action-group">
             <button class="btn ghost-btn favorite-btn ${favorited ? "active-favorite" : ""}" data-job-id="${item.id}">${favorited ? "已收藏" : "收藏岗位"}</button>
             <button class="btn detail-btn" data-job-id="${item.id}">查看详情</button>
-            <button class="btn apply-btn" data-job-id="${item.id}">立即投递</button>
+            <button class="btn apply-btn" data-job-id="${item.id}">立刻投递</button>
           </div>
         </div>
       </div>
@@ -243,11 +270,11 @@ function renderStudentJobs(session, jobs, favoriteIds) {
   });
 }
 
-function renderAlumniJobs(jobs) {
+function renderAlumniJobs(jobs, alumniProfile) {
   renderAppLayout("jobs", "我的岗位", "发布岗位并查看每个岗位的审核状态和投递情况。", `
     <section class="panel">
       <div class="page-action-bar">
-        <div class="page-action-note">岗位发布与编辑统一走弹窗；校友提交后会进入管理员审核队列。</div>
+        <div class="page-action-note">岗位发布与编辑统一走弹窗；岗位默认归属当前校友资料中的企业，不再手动填写企业编号。</div>
         <div class="action-group">
           <button class="btn" id="create-job-btn">发布新岗位</button>
         </div>
@@ -286,7 +313,8 @@ function renderAlumniJobs(jobs) {
   document.getElementById("create-job-btn").addEventListener("click", () => {
     openJobEditor({
       title: "发布岗位",
-      subtitle: "岗位资料会直接进入待审核状态，用于保障发布内容真实可靠。",
+      subtitle: "岗位会自动绑定到当前校友所属企业，提交后进入待审核状态。",
+      alumniProfile,
       onSubmit: async (payload) => {
         await apiRequest("/referral/job-info/create", {
           method: "POST",
@@ -305,7 +333,8 @@ function renderAlumniJobs(jobs) {
       }
       openJobEditor({
         title: "编辑岗位",
-        subtitle: "编辑后会重新进入待审核状态，避免历史审核状态与岗位内容不一致。",
+        subtitle: "编辑后会重新进入待审核状态，企业归属仍以当前校友资料为准。",
+        alumniProfile,
         initial: current,
         onSubmit: async (payload) => {
           await apiRequest("/referral/job-info/update", {
@@ -352,7 +381,11 @@ function renderAlumniJobs(jobs) {
 document.addEventListener("DOMContentLoaded", async () => {
   const session = ensureLogin();
   if (session.role === "ALUMNI") {
-    renderAlumniJobs(await loadAlumniJobs());
+    const [jobs, alumniProfile] = await Promise.all([
+      loadAlumniJobs(),
+      loadCurrentAlumniProfile(session)
+    ]);
+    renderAlumniJobs(jobs, alumniProfile);
     return;
   }
   await fetchFavoriteJobIds(session.profileId);

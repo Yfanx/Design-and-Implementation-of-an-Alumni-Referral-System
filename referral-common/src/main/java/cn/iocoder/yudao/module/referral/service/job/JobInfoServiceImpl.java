@@ -42,6 +42,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         ReferralActorContext.Actor actor = ReferralActorContext.getCurrentActor();
         actor.requireRole("ALUMNI", "只有校友可以发布岗位");
         Long alumniId = actor.requireProfileId("缺少当前校友档案信息");
+        AlumniCompanyBinding companyBinding = resolveAlumniCompanyBinding(alumniId);
         if (storageProperties.isMysqlMode()) {
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
@@ -53,7 +54,7 @@ public class JobInfoServiceImpl implements JobInfoService {
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, Statement.RETURN_GENERATED_KEYS);
                 ps.setLong(1, alumniId);
-                ps.setLong(2, createReqVO.getCompanyId());
+                ps.setLong(2, companyBinding.companyId());
                 ps.setString(3, createReqVO.getJobTitle());
                 ps.setString(4, createReqVO.getJobType());
                 ps.setString(5, createReqVO.getIndustry());
@@ -76,6 +77,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         JobInfoDO jobInfo = new JobInfoDO();
         copyFields(createReqVO, jobInfo);
         jobInfo.setAlumniId(alumniId);
+        jobInfo.setCompanyId(companyBinding.companyId());
         jobInfo.setStatus(JobStatusEnum.PENDING.getStatus());
         jobInfo.setAuditStatus(JobAuditStatusEnum.WAITING.getStatus());
         jobInfo.setPublishTime(LocalDateTime.now());
@@ -85,6 +87,9 @@ public class JobInfoServiceImpl implements JobInfoService {
     @Override
     public void updateJobInfo(JobInfoUpdateReqVO updateReqVO) {
         ReferralActorContext.Actor actor = ReferralActorContext.getCurrentActor();
+        AlumniCompanyBinding companyBinding = actor.isAlumni()
+                ? resolveAlumniCompanyBinding(actor.requireProfileId("缺少当前校友档案信息"))
+                : null;
         if (storageProperties.isMysqlMode()) {
             JobOwnership ownership = requireJobOwnership(updateReqVO.getId(), actor, "无权修改该岗位");
             jdbcTemplate.update("""
@@ -94,7 +99,7 @@ public class JobInfoServiceImpl implements JobInfoService {
                         contact_type = ?, referral_quota = ?, expire_time = ?, audit_status = ?, status = ?
                     WHERE id = ?
                     """,
-                    ownership.alumniId(), updateReqVO.getCompanyId(), updateReqVO.getJobTitle(), updateReqVO.getJobType(),
+                    ownership.alumniId(), actor.isAlumni() ? companyBinding.companyId() : updateReqVO.getCompanyId(), updateReqVO.getJobTitle(), updateReqVO.getJobType(),
                     updateReqVO.getIndustry(), updateReqVO.getCity(), updateReqVO.getSalaryRange(),
                     updateReqVO.getEducationRequirement(), updateReqVO.getExperienceRequirement(), updateReqVO.getSkillRequirement(),
                     updateReqVO.getJobDesc(), updateReqVO.getContactType(), updateReqVO.getReferralQuota(),
@@ -111,6 +116,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         requireJobOwnership(jobInfo, actor, "无权修改该岗位");
         copyFields(updateReqVO, jobInfo);
         if (actor.isAlumni()) {
+            jobInfo.setCompanyId(companyBinding.companyId());
             jobInfo.setAuditStatus(JobAuditStatusEnum.WAITING.getStatus());
             jobInfo.setStatus(JobStatusEnum.PENDING.getStatus());
         }
@@ -306,6 +312,34 @@ public class JobInfoServiceImpl implements JobInfoService {
         target.setExpireTime(source.getExpireTime());
     }
 
+    private AlumniCompanyBinding resolveAlumniCompanyBinding(Long alumniId) {
+        if (storageProperties.isMysqlMode()) {
+            List<AlumniCompanyBinding> bindings = jdbcTemplate.query("""
+                    SELECT company_id, company_name
+                    FROM ref_alumni_info
+                    WHERE id = ?
+                    """, (rs, rowNum) -> new AlumniCompanyBinding(
+                    (Long) rs.getObject("company_id"),
+                    rs.getString("company_name")), alumniId);
+            if (bindings.isEmpty()) {
+                throw new IllegalArgumentException("当前校友资料不存在");
+            }
+            AlumniCompanyBinding binding = bindings.get(0);
+            if (binding.companyId() == null || binding.companyName() == null || binding.companyName().isBlank()) {
+                throw new IllegalArgumentException("请先在我的资料中维护所属企业后再发布岗位");
+            }
+            return binding;
+        }
+        var alumniInfo = referralDemoStore.getAlumni(alumniId);
+        if (alumniInfo == null) {
+            throw new IllegalArgumentException("当前校友资料不存在");
+        }
+        if (alumniInfo.getCompanyId() == null || alumniInfo.getCompanyName() == null || alumniInfo.getCompanyName().isBlank()) {
+            throw new IllegalArgumentException("请先在我的资料中维护所属企业后再发布岗位");
+        }
+        return new AlumniCompanyBinding(alumniInfo.getCompanyId(), alumniInfo.getCompanyName());
+    }
+
     private JobInfoRespVO convert(JobInfoDO source) {
         CompanyInfoDO companyInfo = referralDemoStore.getCompany(source.getCompanyId());
         JobInfoRespVO target = new JobInfoRespVO();
@@ -358,5 +392,8 @@ public class JobInfoServiceImpl implements JobInfoService {
     }
 
     private record JobOwnership(Long id, Long alumniId, Integer auditStatus, Integer status) {
+    }
+
+    private record AlumniCompanyBinding(Long companyId, String companyName) {
     }
 }
