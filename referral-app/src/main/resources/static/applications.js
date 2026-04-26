@@ -4,72 +4,101 @@ async function loadStudentApplicationContext() {
     apiRequest("/referral/referral-application/list")
   ]);
   return {
-    jobs: jobResult.data.list || [],
-    applications: applicationResult.data.list || []
+    jobs: jobResult.data?.list || [],
+    applications: applicationResult.data?.list || []
   };
 }
 
 async function loadAlumniApplications() {
   const result = await apiRequest("/referral/referral-application/list");
-  return result.data.list || [];
+  return result.data?.list || [];
+}
+
+function applicationStatusText(status) {
+  return statusBadge(Number(status)).text;
 }
 
 function renderApplicationTimeline(target, applications, { showActions = false, onDetail, onCancel } = {}) {
-  target.innerHTML = applications.map((item) => {
-    const badge = statusBadge(item.applyStatus);
+  target.innerHTML = (applications || []).map((item) => {
+    const badge = statusBadge(Number(item.applyStatus));
     return `
       <div class="timeline-item">
         <div class="split-header">
           <div>
-            <strong>${item.jobTitle}</strong>
+            <strong>${item.jobTitle || "-"}</strong>
             <div class="job-card-company">${item.alumniName || item.studentName || "-"}</div>
           </div>
           <span class="status-badge ${badge.cls}">${badge.text}</span>
         </div>
         <div class="meta-row">
           <span class="meta-tag">匹配度：${item.matchScore || "-"}</span>
-          <span class="meta-tag">${item.processRemark || "等待进一步处理"}</span>
+          <span class="meta-tag">${item.processRemark || "已提交，等待处理"}</span>
           <span class="meta-tag">${renderAttachmentLink(item.resumeUrl, "查看附件")}</span>
         </div>
         ${showActions ? `
           <div class="action-group top-gap">
             <button class="btn ghost-btn detail-application-btn" data-id="${item.id}">查看详情</button>
-            ${Number(item.applyStatus) === 0 || Number(item.applyStatus) === 1 ? `<button class="btn ghost-btn cancel-application-btn" data-id="${item.id}">撤回申请</button>` : ""}
+            ${(Number(item.applyStatus) === 0 || Number(item.applyStatus) === 1)
+              ? `<button class="btn ghost-btn cancel-application-btn" data-id="${item.id}">撤回申请</button>`
+              : ""}
           </div>
         ` : ""}
       </div>
     `;
   }).join("") || `<div class="timeline-item">暂无投递记录。</div>`;
 
-  if (showActions) {
-    target.querySelectorAll(".detail-application-btn").forEach((button) => {
-      button.addEventListener("click", () => onDetail?.(Number(button.dataset.id)));
-    });
-    target.querySelectorAll(".cancel-application-btn").forEach((button) => {
-      button.addEventListener("click", () => onCancel?.(Number(button.dataset.id)));
-    });
+  if (!showActions) {
+    return;
   }
+  target.querySelectorAll(".detail-application-btn").forEach((button) => {
+    button.addEventListener("click", () => onDetail?.(Number(button.dataset.id)));
+  });
+  target.querySelectorAll(".cancel-application-btn").forEach((button) => {
+    button.addEventListener("click", () => onCancel?.(Number(button.dataset.id)));
+  });
+}
+
+function buildJobOptions(jobs, currentId) {
+  return (jobs || []).map((item) => `
+    <option value="${item.id}" ${Number(item.id) === Number(currentId) ? "selected" : ""}>
+      ${item.jobTitle} / ${item.companyName} / ${item.city}
+    </option>
+  `).join("");
+}
+
+function syncApplicationJobPreview(jobs, jobId, titleNode, companyNode) {
+  const selected = (jobs || []).find((item) => Number(item.id) === Number(jobId));
+  titleNode.textContent = selected?.jobTitle || "未选择岗位";
+  companyNode.textContent = `${selected?.companyName || "-"} / ${selected?.city || "-"}`;
+}
+
+function syncApplicationAttachment(url, previewLink, previewArea) {
+  const safeUrl = sanitizeAttachmentUrl(url);
+  previewLink.href = safeUrl || "#";
+  previewLink.classList.toggle("is-disabled", !safeUrl);
+  previewArea.innerHTML = renderAttachmentPreview(safeUrl);
 }
 
 function openApplicationComposer(jobs, initialJobId, onSubmitted) {
-  const current = jobs.find((item) => Number(item.id) === Number(initialJobId)) || jobs[0];
+  const current = (jobs || []).find((item) => Number(item.id) === Number(initialJobId)) || jobs[0];
   const defaultResumeUrl = sanitizeAttachmentUrl("/uploads/demo/resume/wang.pdf");
+
   openPageModal({
     title: "发起申请",
-    subtitle: "岗位、附件与自我介绍统一在弹窗中填写，提交后会自动进入申请时间线。",
+    subtitle: "岗位、附件与自我介绍统一在弹窗里填写，提交后会直接进入右侧申请时间线。",
     size: "wide",
     body: `
       <form class="demo-form" id="application-form">
         <div class="job-preview-card">
           <strong id="application-job-title">${current?.jobTitle || "未选择岗位"}</strong>
           <div class="job-card-company" id="application-job-company">${current?.companyName || "-"} / ${current?.city || "-"}</div>
-          <div class="preview-desc">从岗位页跳转过来时会自动带入当前岗位信息，也可以在这里重新切换。</div>
+          <div class="preview-desc">从职位页进入时会自动带入当前岗位，也可以在这里重新切换。</div>
         </div>
         <div class="form-grid top-gap">
           <label class="form-field field-span-2">
             <span>目标岗位</span>
             <select name="jobId" id="application-job-select">
-              ${jobs.map((item) => `<option value="${item.id}" ${Number(item.id) === Number(current?.id) ? "selected" : ""}>${item.jobTitle} · ${item.companyName} · ${item.city}</option>`).join("")}
+              ${buildJobOptions(jobs, current?.id)}
             </select>
           </label>
           <label class="form-field field-span-2">
@@ -81,24 +110,24 @@ function openApplicationComposer(jobs, initialJobId, onSubmitted) {
             <div class="upload-bar">
               <input id="application-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.gif,.svg">
               <button type="button" class="btn ghost-btn" id="upload-application-file-btn">上传附件</button>
-              <a class="btn ghost-btn" id="application-preview-link" href="${defaultResumeUrl || "#"}" target="_blank" rel="noreferrer">打开当前附件</a>
+              <a class="btn ghost-btn" id="application-preview-link" href="${defaultResumeUrl}" target="_blank" rel="noreferrer">打开当前附件</a>
             </div>
           </div>
           <div class="field-span-2" id="application-preview-area">${renderAttachmentPreview(defaultResumeUrl)}</div>
           <label class="form-field field-span-2">
             <span>自我介绍</span>
-            <textarea name="selfIntroduction" placeholder="简要描述你为什么适合这个岗位。">我有较好的项目经验，希望通过校友内推获得这次机会。</textarea>
+            <textarea name="selfIntroduction" placeholder="简要说明你的项目经历、技能亮点和申请动机">我有较好的项目经验，希望通过校友内推获得这次机会。</textarea>
           </label>
         </div>
         <div class="page-action-bar top-gap">
-          <div class="page-action-note">系统会自动绑定当前登录学生与岗位所属校友，无需手工填写各种 ID。</div>
+          <div class="page-action-note">系统会自动绑定当前登录学生与岗位对应校友，无需手动填写 studentId、alumniId。</div>
           <div class="action-group">
             <button type="button" class="btn ghost-btn" id="cancel-application-editor">取消</button>
             <button type="submit" class="btn">提交申请</button>
           </div>
         </div>
       </form>
-      <div id="application-result" class="action-result">提交成功后会自动刷新右侧记录。</div>
+      <div id="application-result" class="action-result">提交成功后会自动刷新申请记录。</div>
     `,
     onReady(body) {
       const resultNode = body.querySelector("#application-result");
@@ -109,22 +138,14 @@ function openApplicationComposer(jobs, initialJobId, onSubmitted) {
       const titleNode = body.querySelector("#application-job-title");
       const companyNode = body.querySelector("#application-job-company");
 
-      const syncSelectedJob = (jobId) => {
-        const selected = jobs.find((item) => Number(item.id) === Number(jobId));
-        titleNode.textContent = selected?.jobTitle || "未选择岗位";
-        companyNode.textContent = `${selected?.companyName || "-"} / ${selected?.city || "-"}`;
-      };
-
-      const syncAttachment = (url) => {
-        const safeUrl = sanitizeAttachmentUrl(url);
-        previewLink.href = safeUrl || "#";
-        previewLink.classList.toggle("is-disabled", !safeUrl);
-        previewArea.innerHTML = renderAttachmentPreview(safeUrl);
-      };
-
       body.querySelector("#cancel-application-editor").addEventListener("click", closePageModal);
-      jobSelectNode.addEventListener("change", (event) => syncSelectedJob(event.target.value));
-      resumeUrlInput.addEventListener("input", () => syncAttachment(resumeUrlInput.value.trim()));
+      jobSelectNode.addEventListener("change", (event) => {
+        syncApplicationJobPreview(jobs, event.target.value, titleNode, companyNode);
+      });
+      resumeUrlInput.addEventListener("input", () => {
+        syncApplicationAttachment(resumeUrlInput.value.trim(), previewLink, previewArea);
+      });
+
       body.querySelector("#upload-application-file-btn").addEventListener("click", async () => {
         const file = body.querySelector("#application-file-input").files?.[0];
         if (!file) {
@@ -135,38 +156,50 @@ function openApplicationComposer(jobs, initialJobId, onSubmitted) {
         try {
           const uploaded = await uploadReferralFile(file, "student/application");
           resumeUrlInput.value = uploaded.url;
-          syncAttachment(uploaded.url);
-          resultNode.innerText = `附件上传成功：${uploaded.originalFileName}`;
+          syncApplicationAttachment(uploaded.url, previewLink, previewArea);
+          resultNode.innerText = `附件上传成功：${uploaded.originalFileName || "已完成上传"}`;
         } catch (error) {
           resultNode.innerText = error.message || "上传失败，请稍后重试。";
         }
       });
+
       body.querySelector("#application-form").addEventListener("submit", async (event) => {
         event.preventDefault();
         const payload = formPayload(event.target);
-        const response = await apiRequest("/referral/referral-application/create", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        resultNode.innerText = `申请已提交，记录 ID：${response.data}`;
-        await onSubmitted(payload, response.data);
-        setTimeout(() => closePageModal(), 500);
+        resultNode.innerText = "正在提交申请...";
+        try {
+          const response = await apiRequest("/referral/referral-application/create", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          resultNode.innerText = `申请已提交，记录 ID：${response.data}`;
+          await onSubmitted(payload, response.data);
+          setTimeout(() => closePageModal(), 400);
+        } catch (error) {
+          resultNode.innerText = error.message || "提交失败，请稍后重试。";
+        }
       });
     }
   });
 }
 
 function openApplicationDetail(item) {
-  const badge = statusBadge(item.applyStatus);
+  if (!item) {
+    return;
+  }
+  const badge = statusBadge(Number(item.applyStatus));
   openPageModal({
     title: "申请详情",
-    subtitle: "查看当前申请的状态说明、附件与处理备注。",
+    subtitle: "查看当前申请状态、处理说明与附件。",
     body: `
       <div class="compact-list">
-        <div class="compact-item"><strong>${item.jobTitle}</strong><div class="job-card-company">${item.alumniName || item.studentName || "-"}</div></div>
+        <div class="compact-item"><strong>${item.jobTitle || "-"}</strong><div class="job-card-company">${item.alumniName || item.studentName || "-"}</div></div>
         <div class="compact-item"><strong>状态</strong><div class="job-card-company"><span class="status-badge ${badge.cls}">${badge.text}</span></div></div>
+        <div class="compact-item"><strong>提交时间</strong><p>${formatDateTime(item.applyTime)}</p></div>
+        <div class="compact-item"><strong>处理时间</strong><p>${formatDateTime(item.processTime)}</p></div>
         <div class="compact-item"><strong>处理备注</strong><p>${item.processRemark || "当前还没有新的处理备注。"}</p></div>
         <div class="compact-item"><strong>附件</strong><div class="job-card-company">${renderAttachmentLink(item.resumeUrl, "查看附件")}</div></div>
+        <div class="compact-item"><strong>自我介绍</strong><p>${item.selfIntroduction || "未填写"}</p></div>
       </div>
     `
   });
@@ -175,14 +208,14 @@ function openApplicationDetail(item) {
 function openApplicationCancel(id, onCancelled) {
   openPageModal({
     title: "撤回申请",
-    subtitle: "撤回后该记录会保留在时间线中，但状态会更新为已取消。",
+    subtitle: "撤回后会保留历史记录，但状态会更新为已取消。",
     body: `
       <div class="compact-item">
         <strong>确认撤回</strong>
-        <p>只有待处理或已查看阶段的申请建议撤回。若校友已推进流程，请优先通过消息沟通说明情况。</p>
+        <p>仅建议撤回待处理或已查看阶段的申请。如果校友已经推进流程，建议先通过消息沟通说明情况。</p>
       </div>
       <div class="page-action-bar top-gap">
-        <div class="page-action-note">撤回操作只会作用于当前登录学生自己的申请。</div>
+        <div class="page-action-note">该操作只会影响当前登录学生自己的申请。</div>
         <div class="action-group">
           <button type="button" class="btn ghost-btn" id="cancel-application-close">取消</button>
           <button type="button" class="btn danger-btn" id="confirm-application-cancel">确认撤回</button>
@@ -203,12 +236,13 @@ function openApplicationCancel(id, onCancelled) {
 function openApplicationProcessor(item, onProcessed) {
   openPageModal({
     title: "处理申请",
-    subtitle: "校友只能处理投递到自己岗位上的申请，状态和备注会同步回学生端时间线。",
+    subtitle: "校友可以更新处理状态，并把备注同步回学生端时间线。",
     body: `
       <form class="demo-form" id="process-application-form">
         <div class="compact-list">
-          <div class="compact-item"><strong>${item.studentName}</strong><div class="job-card-company">${item.jobTitle}</div></div>
-          <div class="compact-item"><strong>简历附件</strong><div class="job-card-company">${renderAttachmentLink(item.resumeUrl, "查看附件")}</div></div>
+          <div class="compact-item"><strong>${item.studentName || "-"}</strong><div class="job-card-company">${item.jobTitle || "-"}</div></div>
+          <div class="compact-item"><strong>附件</strong><div class="job-card-company">${renderAttachmentLink(item.resumeUrl, "查看附件")}</div></div>
+          <div class="compact-item"><strong>当前状态</strong><div class="job-card-company">${applicationStatusText(item.applyStatus)}</div></div>
         </div>
         <div class="form-grid top-gap">
           <label class="form-field">
@@ -222,11 +256,11 @@ function openApplicationProcessor(item, onProcessed) {
           </label>
           <label class="form-field field-span-2">
             <span>处理备注</span>
-            <textarea name="processRemark" placeholder="例如：已推荐给用人部门、建议补充项目经历、流程已完成。">${item.processRemark || ""}</textarea>
+            <textarea name="processRemark" placeholder="例如：已推荐给用人部门，建议补充项目经历，或流程已结束。">${item.processRemark || ""}</textarea>
           </label>
         </div>
         <div class="page-action-bar top-gap">
-          <div class="page-action-note">建议把推荐结果、补充建议或流程状态写清楚，学生端会直接看到这段说明。</div>
+          <div class="page-action-note">建议把推进结果、补充建议或流程状态写清楚，学生端会直接看到。</div>
           <div class="action-group">
             <button type="button" class="btn ghost-btn" id="cancel-process-application">取消</button>
             <button type="submit" class="btn">提交处理结果</button>
@@ -242,29 +276,34 @@ function openApplicationProcessor(item, onProcessed) {
         event.preventDefault();
         const payload = formPayload(event.target);
         payload.id = item.id;
-        await apiRequest("/referral/referral-application/process", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        resultNode.innerText = "处理结果已提交。";
-        await onProcessed();
-        setTimeout(() => closePageModal(), 500);
+        resultNode.innerText = "正在提交处理结果...";
+        try {
+          await apiRequest("/referral/referral-application/process", {
+            method: "POST",
+            body: JSON.stringify(payload)
+          });
+          resultNode.innerText = "处理结果已提交。";
+          await onProcessed();
+          setTimeout(() => closePageModal(), 400);
+        } catch (error) {
+          resultNode.innerText = error.message || "提交失败，请稍后重试。";
+        }
       });
     }
   });
 }
 
 function renderStudentApplications(jobs, applications, currentJobId) {
-  const currentJob = jobs.find((item) => Number(item.id) === Number(currentJobId)) || jobs[0];
-  const processingCount = applications.filter((item) => item.applyStatus === 0 || item.applyStatus === 1).length;
+  const currentJob = (jobs || []).find((item) => Number(item.id) === Number(currentJobId)) || jobs[0];
+  const processingCount = (applications || []).filter((item) => Number(item.applyStatus) === 0 || Number(item.applyStatus) === 1).length;
 
-  renderAppLayout("applications", "我的申请", "提交内推申请、预览附件，并在时间线中持续跟踪进度。", `
+  renderAppLayout("applications", "我的申请", "提交内推申请、预览附件，并持续跟踪处理进度。", `
     <section class="panel reveal">
       <div class="cards">
         <div class="card"><div class="card-label">全部申请</div><div class="card-value">${applications.length}</div></div>
         <div class="card"><div class="card-label">处理中</div><div class="card-value">${processingCount}</div></div>
-        <div class="card"><div class="card-label">已内推</div><div class="card-value">${applications.filter((item) => item.applyStatus === 2).length}</div></div>
-        <div class="card"><div class="card-label">已完成</div><div class="card-value">${applications.filter((item) => item.applyStatus === 4).length}</div></div>
+        <div class="card"><div class="card-label">已内推</div><div class="card-value">${applications.filter((item) => Number(item.applyStatus) === 2).length}</div></div>
+        <div class="card"><div class="card-label">已完成</div><div class="card-value">${applications.filter((item) => Number(item.applyStatus) === 4).length}</div></div>
       </div>
     </section>
     <div class="content-grid reveal reveal-delay-1">
@@ -279,15 +318,15 @@ function renderStudentApplications(jobs, applications, currentJobId) {
           </div>
         </div>
         <div class="compact-list">
-          <div class="compact-item"><strong>投递说明</strong><p>岗位、附件和自我介绍都统一在弹窗中填写，提交后直接进入右侧申请时间线。</p></div>
-          <div class="compact-item"><strong>闭环规则</strong><p>系统会自动绑定当前学生和岗位所属校友，不再允许手工填写 `studentId`、`alumniId` 等归属字段。</p></div>
+          <div class="compact-item"><strong>投递说明</strong><p>岗位、附件和自我介绍都统一在弹窗中填写，提交后会直接进入右侧申请时间线。</p></div>
+          <div class="compact-item"><strong>闭环规则</strong><p>系统会自动绑定当前学生和岗位所属校友，不再依赖前端手填 ID。</p></div>
         </div>
       </section>
       <section class="panel">
         <div class="panel-header">
           <div>
             <h2>申请记录</h2>
-            <p>这里只显示当前学生账号自己的投递历史。</p>
+            <p>这里只展示当前学生账号自己的投递历史。</p>
           </div>
         </div>
         <div class="timeline" id="application-timeline"></div>
@@ -308,12 +347,15 @@ function renderStudentApplications(jobs, applications, currentJobId) {
       const job = jobs.find((item) => Number(item.id) === Number(payload.jobId));
       applications.unshift({
         id,
+        jobId: Number(payload.jobId),
         jobTitle: job?.jobTitle || "新申请",
         alumniName: job?.alumniName || "待处理",
-        applyStatus: 0,
+        resumeUrl: payload.resumeUrl,
+        selfIntroduction: payload.selfIntroduction,
         matchScore: "-",
+        applyStatus: 0,
         processRemark: "申请已提交，等待校友查看",
-        resumeUrl: payload.resumeUrl
+        applyTime: new Date().toISOString()
       });
       rerender();
     });
@@ -321,15 +363,15 @@ function renderStudentApplications(jobs, applications, currentJobId) {
 }
 
 function renderAlumniApplications(applications) {
-  const waiting = applications.filter((item) => item.applyStatus === 0 || item.applyStatus === 1).length;
-  const recommended = applications.filter((item) => item.applyStatus === 2).length;
+  const waiting = (applications || []).filter((item) => Number(item.applyStatus) === 0 || Number(item.applyStatus) === 1).length;
+  const recommended = (applications || []).filter((item) => Number(item.applyStatus) === 2).length;
 
   renderAppLayout("applications", "学生申请", "查看并处理投递到我岗位上的内推申请，同时支持直接预览学生附件。", `
     <section class="panel">
       <div class="cards">
         <div class="card"><div class="card-label">收到申请</div><div class="card-value">${applications.length}</div></div>
         <div class="card"><div class="card-label">待处理</div><div class="card-value">${waiting}</div></div>
-        <div class="card"><div class="card-label">已推进</div><div class="card-value">${recommended}</div></div>
+        <div class="card"><div class="card-label">已内推</div><div class="card-value">${recommended}</div></div>
       </div>
     </section>
     <section class="panel top-gap">
@@ -344,14 +386,14 @@ function renderAlumniApplications(applications) {
   `);
 
   const timelineNode = document.getElementById("alumni-application-timeline");
-  timelineNode.innerHTML = applications.map((item) => {
-    const badge = statusBadge(item.applyStatus);
+  timelineNode.innerHTML = (applications || []).map((item) => {
+    const badge = statusBadge(Number(item.applyStatus));
     return `
       <div class="timeline-item">
         <div class="split-header">
           <div>
-            <strong>${item.studentName}</strong>
-            <div class="job-card-company">${item.jobTitle}</div>
+            <strong>${item.studentName || "-"}</strong>
+            <div class="job-card-company">${item.jobTitle || "-"}</div>
           </div>
           <span class="status-badge ${badge.cls}">${badge.text}</span>
         </div>
@@ -387,4 +429,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const query = new URLSearchParams(location.search);
   const { jobs, applications } = await loadStudentApplicationContext();
   renderStudentApplications(jobs, applications, Number(query.get("jobId")) || jobs[0]?.id);
+
+  if (query.get("jobId")) {
+    setTimeout(() => {
+      document.getElementById("open-application-modal")?.click();
+    }, 0);
+  }
 });
