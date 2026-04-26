@@ -549,6 +549,7 @@ body::after {
     width: 100%;
     background: rgba(255, 255, 255, 0.12);
     box-shadow: none;
+    white-space: nowrap;
 }
 
 .login-result,
@@ -1566,9 +1567,26 @@ body::after {
 
 .app-shell.sidebar-collapsed .brand-subtitle,
 .app-shell.sidebar-collapsed .user-card .meta,
-.app-shell.sidebar-collapsed .menu-copy,
-.app-shell.sidebar-collapsed .logout-btn {
+.app-shell.sidebar-collapsed .menu-copy {
     display: none;
+}
+
+.app-shell.sidebar-collapsed .logout-btn {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0;
+    margin: 18px auto 0;
+    border-radius: 14px;
+    font-size: 0;
+    position: relative;
+}
+
+.app-shell.sidebar-collapsed .logout-btn::before {
+    content: "退";
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.88);
 }
 
 .app-shell.sidebar-collapsed .sidebar {

@@ -217,7 +217,7 @@ function renderAppLayout(pageKey, title, subtitle, mainContent) {
               </a>
             `).join("")}
           </nav>
-          <button class="btn logout-btn" onclick="logout()">退出登录</button>
+          <button class="btn logout-btn" type="button" onclick="logout()">退出登录</button>
         </div>
       </aside>
       <main class="content">
