@@ -3034,6 +3034,9 @@ body::after {
 }
 
 .login-hero-cyber {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 34px 38px;
     overflow: hidden;
 }
@@ -3042,6 +3045,7 @@ body::after {
     position: relative;
     width: min(100%, 820px);
     min-height: 640px;
+    margin: 0 auto;
     padding: 30px 28px 26px;
     border: 1px solid rgba(131, 105, 75, 0.14);
     border-radius: 34px;
