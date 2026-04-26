@@ -44,21 +44,50 @@ mysql -u root -p < code\deployment\mysql\02-seed-data.sql
 yudao_referral_demo
 ```
 
-## 4. 环境变量
-启动前请在当前命令行窗口设置以下环境变量：
+## 4. 本地配置文件
+启动前请先在项目根目录 `code\config` 下复制以下模板文件：
 
-```bat
-set REFERRAL_DB_URL=jdbc:mysql://localhost:3306/yudao_referral_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
-set REFERRAL_DB_USERNAME=root
-set REFERRAL_DB_PASSWORD=你的MySQL密码
-set REFERRAL_UPLOAD_DIR=..\uploads
-set REFERRAL_UPLOAD_PUBLIC_PREFIX=/uploads/
+1. `shared-local.example.yml` 复制为 `shared-local.yml`
+2. `referral-admin-local.example.yml` 复制为 `referral-admin-local.yml`
+3. `referral-app-local.example.yml` 复制为 `referral-app-local.yml`
+
+其中 `shared-local.yml` 需要至少改成下面这样：
+
+```yml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/yudao_referral_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: root
+    password: 你的MySQL密码
+
+referral:
+  file:
+    upload-dir: ../uploads
+    public-prefix: /uploads/
+```
+
+端口配置分别写在：
+- `config\referral-admin-local.yml`
+- `config\referral-app-local.yml`
+
+默认示例：
+
+```yml
+server:
+  port: 8080
+```
+
+```yml
+server:
+  port: 8081
 ```
 
 说明：
-- `REFERRAL_DB_PASSWORD` 必须改成目标电脑自己的 MySQL 密码
-- `REFERRAL_UPLOAD_DIR` 建议指向项目根目录下的 `uploads`
+- `shared-local.yml`、`referral-admin-local.yml`、`referral-app-local.yml` 默认不会提交到 Git
+- `password` 必须改成目标电脑自己的 MySQL 密码
+- `upload-dir` 建议指向项目根目录下的 `uploads`
 - 当前系统不会在启动时自动重置演示数据
+- 如有需要，环境变量仍然可以覆盖文件中的同名配置
 
 ## 5. 构建项目
 在 `code` 目录下执行：
@@ -71,14 +100,12 @@ mvn -pl referral-app,referral-admin -am package -DskipTests
 ### 启动后台
 
 ```bat
-set SERVER_PORT=8080
 mvn -pl referral-admin spring-boot:run
 ```
 
 ### 启动前台
 
 ```bat
-set SERVER_PORT=8081
 mvn -pl referral-app spring-boot:run
 ```
 
@@ -125,6 +152,6 @@ taskkill /PID 进程号 /F
 - 若需新窗口打开，优先走系统提供的“新窗口查看”入口
 
 ### 10.4 迁移后附件无法打开
-- 检查 `REFERRAL_UPLOAD_DIR` 是否指向正确的 `uploads`
+- 检查 `config\shared-local.yml` 中的 `referral.file.upload-dir` 是否指向正确的 `uploads`
 - 检查 `uploads` 是否完整复制
 - 检查附件 URL 是否能直接访问

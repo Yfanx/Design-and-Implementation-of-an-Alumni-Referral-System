@@ -21,7 +21,7 @@
 - 原生 HTML / CSS / JavaScript 静态页面
 
 ## 快速启动
-1. 先按 [DEPLOY_WINDOWS.md](./DEPLOY_WINDOWS.md) 完成数据库和环境配置。
+1. 先按 [DEPLOY_WINDOWS.md](./DEPLOY_WINDOWS.md) 完成数据库和本地配置文件设置。
 2. 在项目根目录 `code` 下执行打包：
 
 ```bat
@@ -31,14 +31,12 @@ mvn -pl referral-app,referral-admin -am package -DskipTests
 3. 启动后台：
 
 ```bat
-set SERVER_PORT=8080
 mvn -pl referral-admin spring-boot:run
 ```
 
 4. 启动前台：
 
 ```bat
-set SERVER_PORT=8081
 mvn -pl referral-app spring-boot:run
 ```
 
@@ -64,4 +62,4 @@ mvn -pl referral-app spring-boot:run
 
 ## 说明
 - 项目最终只保留一份迁移部署文档：`DEPLOY_WINDOWS.md`
-- 如果需要迁移到其他 Windows 电脑，直接按部署文档导入 SQL、配置环境变量并启动即可
+- 如果需要迁移到其他 Windows 电脑，直接按部署文档导入 SQL、复制 `config` 模板并修改后启动即可

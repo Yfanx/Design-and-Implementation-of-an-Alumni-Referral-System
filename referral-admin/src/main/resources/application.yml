@@ -2,6 +2,10 @@ server:
   port: ${SERVER_PORT:8080}
 
 spring:
+  config:
+    import:
+      - optional:file:./config/shared-local.yml
+      - optional:file:./config/referral-admin-local.yml
   application:
     name: referral-admin
   servlet:
@@ -11,7 +15,7 @@ spring:
   datasource:
     url: ${REFERRAL_DB_URL:jdbc:mysql://localhost:3306/yudao_referral_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=utf8}
     username: ${REFERRAL_DB_USERNAME:root}
-    password: ${REFERRAL_DB_PASSWORD:Yyx0fanx@}
+    password: ${REFERRAL_DB_PASSWORD:change-me}
     driver-class-name: com.mysql.cj.jdbc.Driver
   sql:
     init:
@@ -23,5 +27,5 @@ spring:
 referral:
   storage-mode: mysql
   file:
-    upload-dir: ${REFERRAL_UPLOAD_DIR:uploads}
+    upload-dir: ${REFERRAL_UPLOAD_DIR:../uploads}
     public-prefix: ${REFERRAL_UPLOAD_PUBLIC_PREFIX:/uploads/}
