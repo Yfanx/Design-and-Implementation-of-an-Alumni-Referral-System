@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生登录 - 校友内推平台</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="login-page">
+<div class="login-shell">
+    <section class="login-hero">
+        <div class="hero-badge">Career Portal</div>
+        <div class="hero-kicker">Student Journey</div>
+        <h1>把推荐、收藏、申请和沟通整合在同一个求职入口。</h1>
+        <p>学生端不只是管理页，而是完整的内推求职工作台，便于直接演示从浏览到申请的闭环。</p>
+
+        <div class="hero-columns">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>职位浏览</strong>
+                    <p>支持关键词搜索、条件筛选和卡片式岗位预览。</p>
+                </div>
+                <div class="feature-item">
+                    <strong>申请跟踪</strong>
+                    <p>可直接查看投递状态、处理备注和最新推进情况。</p>
+                </div>
+                <div class="feature-item">
+                    <strong>校友沟通</strong>
+                    <p>围绕具体岗位发起咨询，更适合真实求职场景。</p>
+                </div>
+            </div>
+
+            <div class="console-frame">
+                <div class="console-head">
+                    <div class="console-dots"><span></span><span></span><span></span></div>
+                    <span>student / dashboard</span>
+                </div>
+                <div class="console-line"><span class="console-label">feed</span><span>推荐 Java 后端、算法、产品等校友内推岗位</span></div>
+                <div class="console-line"><span class="console-label">match</span><span>基于专业、目标城市和技能标签进行岗位匹配</span></div>
+                <div class="console-line"><span class="console-label">flow</span><span>浏览职位 -> 收藏 -> 投递申请 -> 跟进沟通</span></div>
+            </div>
+        </div>
+
+        <div class="hero-stat-row">
+            <div class="hero-stat"><strong>1</strong><span>统一求职入口</span></div>
+            <div class="hero-stat"><strong>6+</strong><span>核心业务页面联动</span></div>
+            <div class="hero-stat"><strong>实时</strong><span>收藏与申请状态同步</span></div>
+        </div>
+    </section>
+
+    <form class="login-card" id="login-form">
+        <h2>学生登录</h2>
+        <input name="username" placeholder="用户名" value="student">
+        <input name="password" type="password" placeholder="密码" value="student123">
+        <button type="submit">进入求职首页</button>
+        <div class="login-result" id="login-result">请输入账号密码后登录。</div>
+        <div class="login-note">前台页面已经接入职位浏览、收藏、内推申请和消息沟通，适合直接演示。</div>
+        <div class="login-switch">还没有账号？<a href="/register.html">立即注册</a></div>
+    </form>
+</div>
+<script src="/common.js?v=20260423-idm-open-fix"></script>
+<script src="/login.js"></script>
+</body>
+</html>

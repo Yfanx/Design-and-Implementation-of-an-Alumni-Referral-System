@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>后台登录 - 高校校友内推管理系统</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="login-page">
+<div class="login-shell">
+    <section class="login-hero">
+        <div class="hero-badge">Anthropic-inspired Console</div>
+        <div class="hero-kicker">Operations Layer</div>
+        <h1>把校友资源、岗位审核和申请流转放进一个可信的后台入口</h1>
+        <p>这一端面向管理员和校友，强调审核、数据可追踪和业务闭环。整体视觉参考 AI 产品官网的叙事方式，不再只是传统后台模板。</p>
+
+        <div class="hero-columns">
+            <div class="feature-list">
+                <div class="feature-item">
+                    <strong>审核工作台</strong>
+                    <p>集中处理待审核岗位、待核验校友和待推进申请，适合汇报时直接演示平台治理能力。</p>
+                </div>
+                <div class="feature-item">
+                    <strong>流程可视化</strong>
+                    <p>从岗位发布到学生申请再到校友处理，后台可以完整追踪每个关键节点。</p>
+                </div>
+                <div class="feature-item">
+                    <strong>双角色后台</strong>
+                    <p>管理员负责监管与统计，校友负责发布岗位和处理申请，入口统一但权限分层。</p>
+                </div>
+            </div>
+
+            <div class="console-frame">
+                <div class="console-head">
+                    <div class="console-dots"><span></span><span></span><span></span></div>
+                    <span>admin / audit-center</span>
+                </div>
+                <div class="console-line"><span class="console-label">queue</span><span>待审岗位 3 个，待核验校友 2 个，待跟进申请 4 个</span></div>
+                <div class="console-line"><span class="console-label">focus</span><span>优先校验企业真实性，再推进高匹配度申请</span></div>
+                <div class="console-line"><span class="console-label">flow</span><span>岗位发布 → 审核通过 → 学生申请 → 校友处理 → 结果留痕</span></div>
+            </div>
+        </div>
+    </section>
+
+    <form class="login-card" id="login-form">
+        <h2>后台登录</h2>
+        <input name="username" placeholder="用户名" value="admin">
+        <input name="password" type="password" placeholder="密码" value="admin123">
+        <button type="submit">进入后台工作台</button>
+        <div class="login-result" id="login-result">请输入账号密码后登录。</div>
+        <div class="login-note">建议汇报时先用管理员账号进入概览与审核工作台，再切换校友账号演示岗位发布和申请处理。</div>
+    </form>
+</div>
+<script src="/common.js"></script>
+<script src="/login.js"></script>
+</body>
+</html>

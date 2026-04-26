@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>附件查看</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #101218; color: #e8eaf2; }
+    .viewer { max-width: 1200px; margin: 0 auto; padding: 16px; }
+    .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .btn { border: 1px solid #4b5563; border-radius: 8px; padding: 8px 12px; color: #e8eaf2; text-decoration: none; }
+    .status { color: #cbd5e1; font-size: 14px; }
+    .panel { background: #171b25; border-radius: 10px; min-height: calc(100vh - 120px); padding: 10px; }
+    .panel img { max-width: 100%; max-height: calc(100vh - 160px); display: block; margin: 0 auto; }
+    .panel object { width: 100%; height: calc(100vh - 160px); border: none; background: #fff; }
+    .fallback { padding: 16px; color: #f1c7c7; }
+  </style>
+  <script src="/common.js?v=20260423-idm-open-fix"></script>
+</head>
+<body>
+  <div class="viewer">
+    <div class="toolbar">
+      <a id="raw-link" class="btn" href="#" target="_blank" rel="noreferrer">打开原始文件</a>
+      <span id="status" class="status">准备加载附件...</span>
+    </div>
+    <div id="panel" class="panel"></div>
+  </div>
+  <script>
+    (async () => {
+      let blobUrl = "";
+      const panel = document.getElementById("panel");
+      const status = document.getElementById("status");
+      const rawLink = document.getElementById("raw-link");
+      const queryUrl = new URLSearchParams(location.search).get("url") || "";
+      const safeUrl = (window.sanitizeAttachmentUrl ? sanitizeAttachmentUrl(queryUrl) : queryUrl.trim());
+      rawLink.href = safeUrl || "#";
+
+      function setStatus(text) { status.textContent = text; }
+      function decodeBase64ToUint8Array(base64Content) {
+        const binary = atob(base64Content);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        return bytes;
+      }
+
+      if (!safeUrl) {
+        panel.innerHTML = '<div class="fallback">附件地址无效。</div>';
+        setStatus("加载失败");
+        return;
+      }
+
+      try {
+        const headers = {
+          ...(typeof buildAuthHeaders === "function" ? buildAuthHeaders() : {})
+        };
+        const resp = await fetch(`/referral/file/preview-content?url=${encodeURIComponent(safeUrl)}`, {
+          method: "GET",
+          headers
+        });
+        const text = await resp.text();
+        const result = text ? JSON.parse(text) : {};
+        if (!resp.ok || Number(result.code ?? resp.status) !== 0) {
+          throw new Error(result.msg || result.message || "preview-failed");
+        }
+        const payload = result.data || {};
+        const base64Content = payload.base64Content || "";
+        if (!base64Content) {
+          throw new Error("empty-content");
+        }
+        const bytes = decodeBase64ToUint8Array(base64Content);
+        const contentType = payload.contentType || "application/octet-stream";
+        blobUrl = URL.createObjectURL(new Blob([bytes], { type: contentType }));
+        if (contentType.startsWith("image/")) {
+          panel.innerHTML = `<img src="${blobUrl}" alt="附件图片">`;
+        } else {
+          panel.innerHTML = `<object data="${blobUrl}#toolbar=1&navpanes=0&scrollbar=1" type="application/pdf"><div class="fallback">浏览器无法内嵌显示该附件，请使用“打开原始文件”。</div></object>`;
+        }
+        setStatus("加载完成");
+      } catch (error) {
+        panel.innerHTML = '<div class="fallback">附件加载失败，请点击“打开原始文件”。</div>';
+        setStatus("加载失败");
+      }
+
+      window.addEventListener("beforeunload", () => {
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+      });
+    })();
+  </script>
+</body>
+</html>

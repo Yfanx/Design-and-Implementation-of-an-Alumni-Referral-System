@@ -1,0 +1,7 @@
+logs/
+*/target/
+.idea/
+.playwright-cli/
+.tmp-pdfjs/
+output/
+tmp/

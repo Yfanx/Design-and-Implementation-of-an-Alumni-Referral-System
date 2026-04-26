@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141413"/>
+      <stop offset="100%" stop-color="#30302e"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8f5ee"/>
+      <stop offset="100%" stop-color="#efe6de"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="720" fill="url(#bg)"/>
+  <circle cx="1040" cy="130" r="160" fill="#c96442" opacity="0.18"/>
+  <circle cx="160" cy="600" r="120" fill="#d97757" opacity="0.14"/>
+  <rect x="120" y="120" width="960" height="480" rx="36" fill="url(#card)" stroke="#d8d0c5"/>
+  <text x="180" y="240" font-size="58" font-family="Georgia, serif" fill="#141413">校友内推作品图示</text>
+  <text x="180" y="316" font-size="28" font-family="Microsoft YaHei, sans-serif" fill="#5e5d59">支持在线预览图片附件</text>
+  <rect x="180" y="390" width="340" height="84" rx="18" fill="#ffffff" stroke="#d8d0c5"/>
+  <text x="220" y="442" font-size="24" font-family="Microsoft YaHei, sans-serif" fill="#c96442">AI Product Style Demo</text>
+  <rect x="560" y="390" width="320" height="84" rx="18" fill="#ffffff" stroke="#d8d0c5"/>
+  <text x="600" y="442" font-size="24" font-family="Microsoft YaHei, sans-serif" fill="#30302e">Image Preview Enabled</text>
+</svg>
