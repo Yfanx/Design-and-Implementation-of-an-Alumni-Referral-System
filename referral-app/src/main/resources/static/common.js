@@ -172,16 +172,17 @@ function applySidebarCollapsedState() {
   toggle.setAttribute("aria-expanded", String(!collapsed));
 }
 
+window.__toggleSidebar = function __toggleSidebar() {
+  saveSidebarCollapsed(!getSidebarCollapsed());
+  applySidebarCollapsedState();
+};
+
 function bindSidebarToggle() {
   const toggle = document.getElementById("sidebar-toggle");
   if (!toggle) {
     return;
   }
-  toggle.onclick = null;
-  toggle.addEventListener("click", () => {
-    saveSidebarCollapsed(!getSidebarCollapsed());
-    applySidebarCollapsedState();
-  });
+  toggle.onclick = window.__toggleSidebar;
 }
 
 function renderAppLayout(pageKey, title, subtitle, mainContent) {
@@ -200,7 +201,7 @@ function renderAppLayout(pageKey, title, subtitle, mainContent) {
               <div class="brand">${roleConfig.title}</div>
               <div class="brand-subtitle">${roleConfig.subtitle}</div>
             </div>
-            <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-expanded="true">收起菜单</button>
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" aria-expanded="true" onclick="window.__toggleSidebar()">收起菜单</button>
           </div>
           <div class="user-card">
             <div class="name">${session.displayName}</div>
