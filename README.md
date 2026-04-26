@@ -21,7 +21,7 @@
 - 原生 HTML / CSS / JavaScript 静态页面
 
 ## 快速启动
-1. 先按 [DEPLOY_WINDOWS.md](D:/code/codex/高校校友内推信息管理与对接系统的设计与实现/code/DEPLOY_WINDOWS.md) 完成数据库和环境配置。
+1. 先按 [DEPLOY_WINDOWS.md](./DEPLOY_WINDOWS.md) 完成数据库和环境配置。
 2. 在项目根目录 `code` 下执行打包：
 
 ```bat
