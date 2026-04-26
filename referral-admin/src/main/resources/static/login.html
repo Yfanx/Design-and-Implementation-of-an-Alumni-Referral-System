@@ -4,70 +4,73 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>&#21518;&#21488;&#30331;&#24405; - &#26657;&#21451;&#20869;&#25512;&#24179;&#21488;</title>
-    <link rel="stylesheet" href="/style.css?v=20260427-ui-luxe1">
+    <title>后台登录 - 校友内推平台</title>
+    <link rel="stylesheet" href="/style.css?v=20260427-admin-login-unified">
 </head>
-<body class="login-page">
-<div class="login-scene" aria-hidden="true">
-    <span class="login-orb login-orb-1"></span>
-    <span class="login-orb login-orb-2"></span>
+<body class="login-page login-page-cyber">
+<div class="login-scene login-scene-cyber" aria-hidden="true">
     <span class="login-grid"></span>
+    <span class="login-star login-star-1"></span>
+    <span class="login-star login-star-2"></span>
+    <span class="login-star login-star-3"></span>
 </div>
 
-<div class="login-shell">
-    <section class="login-hero premium-login-hero">
-        <div class="hero-badge">Admin Console</div>
-        <h1>&#25226;&#23457;&#26680;&#12289;&#23637;&#31034;&#19982;&#31649;&#29702;&#36755;&#20837;&#21516;&#19968;&#20010;&#24037;&#20316;&#21488;&#12290;</h1>
-
-        <div class="login-showcase-grid">
-            <div class="console-frame premium-console">
-                <div class="console-head">
-                    <div class="console-dots"><span></span><span></span><span></span></div>
-                    <span>admin workspace</span>
-                </div>
-                <div class="console-line"><span class="console-label">system</span><span>referral-admin</span></div>
-                <div class="console-line"><span class="console-label">status</span><span>online</span></div>
-                <div class="console-line"><span class="console-label">scope</span><span>audit / review / control</span></div>
+<div class="login-shell login-shell-cyber">
+    <form class="login-card login-card-cyber" id="login-form">
+        <div class="login-logo-row">
+            <span class="login-logo-mark">IR</span>
+            <span class="login-logo-text">校友内推平台</span>
+        </div>
+        <div class="login-card-top">
+            <div>
+                <span class="form-kicker">后台入口</span>
+                <h2>欢迎回来</h2>
+                <p>登录后进入管理员审核与治理工作台</p>
             </div>
+        </div>
 
-            <div class="premium-stat-stack">
-                <div class="hero-stat premium-stat-card">
-                    <strong>audit</strong>
-                    <span>jobs</span>
+        <label class="form-field">
+            <span>用户名</span>
+            <input name="username" placeholder="请输入用户名" value="admin" autocomplete="username">
+        </label>
+        <label class="form-field">
+            <span>密码</span>
+            <input name="password" type="password" placeholder="请输入密码" value="admin123" autocomplete="current-password">
+        </label>
+
+        <button type="submit" class="btn btn-hero">立即登录</button>
+        <div class="login-result" id="login-result"></div>
+    </form>
+
+    <section class="login-hero login-hero-cyber">
+        <div class="brand-hero-panel brand-hero-panel-admin">
+            <div class="brand-hero-chip">管理入口</div>
+            <div class="brand-hero-copy">
+                <h1>校友内推<br>信息管理与对接系统</h1>
+                <p>聚合岗位审核、申请流转、咨询记录与主体治理，作为整套系统的统一管理入口。</p>
+            </div>
+            <div class="brand-hero-surface brand-hero-surface-admin">
+                <div class="surface-grid surface-grid-a"></div>
+                <div class="surface-grid surface-grid-b"></div>
+                <div class="surface-beam surface-beam-a"></div>
+                <div class="surface-beam surface-beam-b"></div>
+                <div class="surface-card surface-card-main">
+                    <span>Audit</span>
+                    <strong>岗位审核与状态治理</strong>
                 </div>
-                <div class="hero-stat premium-stat-card">
-                    <strong>review</strong>
-                    <span>applications</span>
+                <div class="surface-card surface-card-side">
+                    <span>Review</span>
+                    <strong>申请流转与处理跟踪</strong>
                 </div>
-                <div class="hero-stat premium-stat-card">
-                    <strong>manage</strong>
-                    <span>entities</span>
+                <div class="surface-card surface-card-mini">
+                    <span>Manage</span>
+                    <strong>学生校友企业管理</strong>
                 </div>
             </div>
         </div>
     </section>
-
-    <form class="login-card premium-login-card" id="login-form">
-        <div class="login-card-top">
-            <div>
-                <h2>&#21518;&#21488;&#30331;&#24405;</h2>
-            </div>
-        </div>
-
-        <label class="form-field">
-            <span>&#29992;&#25143;&#21517;</span>
-            <input name="username" placeholder="&#35831;&#36755;&#20837;&#29992;&#25143;&#21517;" value="admin" autocomplete="username">
-        </label>
-        <label class="form-field">
-            <span>&#23494;&#30721;</span>
-            <input name="password" type="password" placeholder="&#35831;&#36755;&#20837;&#23494;&#30721;" value="admin123" autocomplete="current-password">
-        </label>
-
-        <button type="submit" class="btn btn-hero">&#36827;&#20837;&#31649;&#29702;&#21488;</button>
-        <div class="login-result" id="login-result"></div>
-    </form>
 </div>
-<script src="/common.js?v=20260427-ui-luxe1"></script>
-<script src="/login.js?v=20260427-ui-luxe1"></script>
+<script src="/common.js?v=20260427-admin-login-unified"></script>
+<script src="/login.js?v=20260427-admin-login-unified"></script>
 </body>
 </html>

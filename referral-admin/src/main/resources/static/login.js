@@ -7,16 +7,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const form = document.getElementById("login-form");
   const result = document.getElementById("login-result");
+  const submitButton = form.querySelector('button[type="submit"]');
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const payload = formPayload(form);
-    const response = await apiRequest("/auth/login", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-    saveSession(response.data);
-    result.innerText = "\u767b\u5f55\u6210\u529f\uff0c\u6b63\u5728\u8fdb\u5165\u7ba1\u7406\u53f0...";
-    location.href = response.data.landingPage || "/dashboard.html";
+    result.innerText = "";
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "登录中...";
+    }
+
+    try {
+      const payload = formPayload(form);
+      const response = await apiRequest("/auth/login", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      });
+      saveSession(response.data);
+      result.innerText = "登录成功，正在进入管理台...";
+      location.href = response.data.landingPage || "/dashboard.html";
+    } catch (error) {
+      result.innerText = error?.message || "登录失败，请稍后重试。";
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = "立即登录";
+      }
+    }
   });
 });
