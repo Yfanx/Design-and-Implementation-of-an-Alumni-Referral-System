@@ -35,14 +35,159 @@ public class ReferralFileServiceImpl implements ReferralFileService {
             Files.createDirectories(demoResumeDir);
             Files.createDirectories(demoImageDir);
 
-            createPdfIfAbsent(demoResumeDir.resolve("wang.pdf"),
-                    "Wang Demo Resume",
-                    "Target Role: Java Backend Engineer",
-                    "Skills: Java / Spring Boot / MySQL / Redis");
-            createPdfIfAbsent(demoResumeDir.resolve("zhao.pdf"),
-                    "Zhao Demo Resume",
-                    "Target Role: Recommendation Algorithm Engineer",
-                    "Skills: Python / Machine Learning / Data Analysis");
+            createResumePdfIfAbsent(demoResumeDir.resolve("wang_backend_resume.pdf"),
+                    "Wang Chen",
+                    "Java Backend Engineer",
+                    "Shanghai | +86 138-0000-2001 | wang.chen@campusmail.com",
+                    new String[] {
+                            "Backend-focused student with hands-on experience in campus SaaS tools and recruiting workflows.",
+                            "Comfortable owning API design, data modeling, caching and delivery efficiency improvements."
+                    },
+                    new String[] {
+                            "B.Eng. in Computer Science and Technology, 2022-2026, South China University.",
+                            "Core modules: Data Structures, DB Systems, Distributed Systems, Operating Systems."
+                    },
+                    new String[] {
+                            "Backend Intern, TalentCloud Lab, 2025. Built Spring Boot APIs, Redis cache and SQL tuning.",
+                            "Student Project Lead, Referral Platform MVP. Coordinated schema design and service integration."
+                    },
+                    new String[] {
+                            "Campus Recruitment Portal: implemented auth, resume review flow and recruiter workbench.",
+                            "Course Scheduling Platform: reduced average query latency with index and cache optimization."
+                    },
+                    new String[] {
+                            "Java, Spring Boot, MySQL, Redis, REST API, Linux, Git, Docker, Unit Testing"
+                    });
+            createResumePdfIfAbsent(demoResumeDir.resolve("zhao_algorithm_resume.pdf"),
+                    "Zhao Yuning",
+                    "Recommendation Algorithm Engineer",
+                    "Hangzhou | +86 138-0000-2002 | zhao.yuning@campusmail.com",
+                    new String[] {
+                            "Algorithm candidate with strong interest in recommendation ranking, feature engineering and A/B analysis.",
+                            "Experienced in converting coursework into measurable prototypes with offline evaluation."
+                    },
+                    new String[] {
+                            "B.Eng. in Software Engineering, 2022-2026, South China University.",
+                            "Core modules: Machine Learning, Probability, Recommender Systems, Data Mining."
+                    },
+                    new String[] {
+                            "AI Lab Research Assistant, 2025. Trained CTR models and analyzed recall/precision tradeoffs.",
+                            "Competition Team Member, Tianchi Track. Built candidate generation and ranking baselines."
+                    },
+                    new String[] {
+                            "Movie Recommendation Demo: combined collaborative filtering and LightGBM ranking pipeline.",
+                            "User Interest Insight Dashboard: built feature ETL scripts and evaluation report automation."
+                    },
+                    new String[] {
+                            "Python, Pandas, Scikit-learn, XGBoost, SQL, Feature Engineering, Experiment Analysis"
+                    });
+            createResumePdfIfAbsent(demoResumeDir.resolve("liu_cloud_resume.pdf"),
+                    "Liu Haoran",
+                    "Cloud Platform Engineer",
+                    "Hangzhou | +86 138-0000-2003 | liu.haoran@campusmail.com",
+                    new String[] {
+                            "Cloud-native engineering candidate with practice in containerization, observability and service delivery.",
+                            "Enjoys platform tooling that improves release confidence and system operability."
+                    },
+                    new String[] {
+                            "B.Eng. in Network Engineering, 2022-2026, South China University.",
+                            "Core modules: Computer Networks, Cloud Computing, Linux Systems, Service Governance."
+                    },
+                    new String[] {
+                            "Platform Engineering Intern, 2025. Maintained CI jobs and container deployment templates.",
+                            "Open Source Contributor. Submitted fixes for deployment docs and startup scripts."
+                    },
+                    new String[] {
+                            "K8s Deployment Toolkit: packaged microservices with Helm and rollout checklists.",
+                            "Cluster Monitoring Demo: integrated Prometheus metrics with alert escalation rules."
+                    },
+                    new String[] {
+                            "Java, Go, Docker, Kubernetes, Helm, Prometheus, Nginx, CI/CD, Shell"
+                    });
+            createResumePdfIfAbsent(demoResumeDir.resolve("sun_frontend_resume.pdf"),
+                    "Sun Jia",
+                    "Frontend Engineer",
+                    "Beijing | +86 138-0000-2004 | sun.jia@campusmail.com",
+                    new String[] {
+                            "Product-oriented frontend candidate focused on information hierarchy, interaction polish and component reuse.",
+                            "Balances delivery speed with maintainable design system thinking."
+                    },
+                    new String[] {
+                            "B.Eng. in Digital Media Technology, 2022-2026, South China University.",
+                            "Core modules: Web Engineering, Interaction Design, Computer Graphics, HCI."
+                    },
+                    new String[] {
+                            "Frontend Intern, 2025. Built Vue3 dashboards, approval flows and analytics pages.",
+                            "Campus Media Studio. Designed event landing pages and registration experiences."
+                    },
+                    new String[] {
+                            "Activity Ops Console: delivered tables, charts and role-based action modules with TypeScript.",
+                            "Design Token Playground: unified forms, cards and navigation patterns for internal tools."
+                    },
+                    new String[] {
+                            "Vue3, TypeScript, Element Plus, ECharts, CSS Architecture, Vite, Accessibility"
+                    });
+            createResumePdfIfAbsent(demoResumeDir.resolve("huang_software_resume.pdf"),
+                    "Huang Rui",
+                    "Software Development Engineer",
+                    "Shenzhen | +86 138-0000-2005 | huang.rui@campusmail.com",
+                    new String[] {
+                            "Generalist software engineering candidate with solid systems fundamentals and strong debugging habits.",
+                            "Interested in performance-sensitive product development and large-scale engineering collaboration."
+                    },
+                    new String[] {
+                            "B.Eng. in Software Engineering, 2022-2026, South China University.",
+                            "Core modules: Operating Systems, Computer Architecture, Network Protocols, C++ Programming."
+                    },
+                    new String[] {
+                            "Embedded Software Intern, 2025. Worked on serial communication and fault log analysis.",
+                            "Robotics Club Developer. Maintained device control programs and test reports."
+                    },
+                    new String[] {
+                            "Device Diagnostic Tool: built C++ parsers and Java log export utilities for QA teams.",
+                            "Protocol Simulation Lab: implemented socket communication and packet replay utilities."
+                    },
+                    new String[] {
+                            "C++, Java, Operating Systems, TCP/IP, Multithreading, Debugging, Git, Documentation"
+                    });
+            createResumePdfIfAbsent(demoResumeDir.resolve("wang.pdf"),
+                    "Wang Chen",
+                    "Java Backend Engineer",
+                    "Shanghai | +86 138-0000-2001 | wang.chen@campusmail.com",
+                    new String[] {
+                            "Legacy alias kept for historical demo data compatibility."
+                    },
+                    new String[] {
+                            "B.Eng. in Computer Science and Technology, 2022-2026, South China University."
+                    },
+                    new String[] {
+                            "Backend Intern with Spring Boot, MySQL and Redis delivery experience."
+                    },
+                    new String[] {
+                            "Campus Recruitment Portal and Scheduling Platform."
+                    },
+                    new String[] {
+                            "Java, Spring Boot, MySQL, Redis"
+                    });
+            createResumePdfIfAbsent(demoResumeDir.resolve("zhao.pdf"),
+                    "Zhao Yuning",
+                    "Recommendation Algorithm Engineer",
+                    "Hangzhou | +86 138-0000-2002 | zhao.yuning@campusmail.com",
+                    new String[] {
+                            "Legacy alias kept for historical demo data compatibility."
+                    },
+                    new String[] {
+                            "B.Eng. in Software Engineering, 2022-2026, South China University."
+                    },
+                    new String[] {
+                            "Research assistant with recommendation and data mining project background."
+                    },
+                    new String[] {
+                            "Movie Recommendation Demo and User Insight Dashboard."
+                    },
+                    new String[] {
+                            "Python, Scikit-learn, SQL, Experiment Analysis"
+                    });
             createSvgIfAbsent(demoImageDir.resolve("portfolio-card.svg"),
                     "Referral Portfolio Demo",
                     "Supports in-app preview for image attachments");
@@ -170,11 +315,13 @@ public class ReferralFileServiceImpl implements ReferralFileService {
         return "file";
     }
 
-    private void createPdfIfAbsent(Path file, String title, String line2, String line3) throws IOException {
+    private void createResumePdfIfAbsent(Path file, String name, String role, String contact,
+                                         String[] summaryLines, String[] educationLines, String[] experienceLines,
+                                         String[] projectLines, String[] skillLines) throws IOException {
         if (Files.exists(file)) {
             return;
         }
-        byte[] bytes = buildSimplePdf(title, line2, line3);
+        byte[] bytes = buildResumePdf(name, role, contact, summaryLines, educationLines, experienceLines, projectLines, skillLines);
         Files.write(file, bytes);
     }
 
@@ -214,21 +361,33 @@ public class ReferralFileServiceImpl implements ReferralFileService {
                 .replace(">", "&gt;");
     }
 
-    private byte[] buildSimplePdf(String title, String line2, String line3) {
-        String[] objects = new String[5];
+    private byte[] buildResumePdf(String name, String role, String contact, String[] summaryLines,
+                                  String[] educationLines, String[] experienceLines, String[] projectLines,
+                                  String[] skillLines) {
+        String[] objects = new String[6];
         objects[0] = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
         objects[1] = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
-        objects[2] = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n";
+        objects[2] = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n";
         objects[3] = "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
-        String content = "BT\n" +
-                "/F1 24 Tf\n" +
-                "72 760 Td\n(" + escapePdf(title) + ") Tj\n" +
-                "0 -42 Td\n/F1 14 Tf\n(" + escapePdf(line2) + ") Tj\n" +
-                "0 -28 Td\n(" + escapePdf(line3) + ") Tj\n" +
-                "0 -28 Td\n(" + escapePdf("Generated on: " + LocalDate.now()) + ") Tj\n" +
-                "ET";
-        objects[4] = "5 0 obj\n<< /Length " + content.getBytes(StandardCharsets.US_ASCII).length + " >>\nstream\n" +
-                content + "\nendstream\nendobj\n";
+        objects[4] = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+
+        StringBuilder content = new StringBuilder();
+        int y = 790;
+        y = appendPdfText(content, "F2", 26, 54, y, name, 30);
+        y = appendPdfText(content, "F1", 13, 54, y, role, 18);
+        y = appendPdfText(content, "F1", 10, 54, y, contact, 18);
+        appendPdfDivider(content, y + 4);
+        y -= 20;
+        y = appendPdfSection(content, y, "Professional Summary", summaryLines);
+        y = appendPdfSection(content, y, "Education", educationLines);
+        y = appendPdfSection(content, y, "Experience", experienceLines);
+        y = appendPdfSection(content, y, "Projects", projectLines);
+        y = appendPdfSection(content, y, "Skills", skillLines);
+        appendPdfText(content, "F1", 9, 54, 40, "Generated for referral-app demo assets on " + LocalDate.now(), 0);
+
+        String contentString = content.toString();
+        objects[5] = "6 0 obj\n<< /Length " + contentString.getBytes(StandardCharsets.US_ASCII).length + " >>\nstream\n" +
+                contentString + "\nendstream\nendobj\n";
 
         StringBuilder pdf = new StringBuilder("%PDF-1.4\n");
         int[] offsets = new int[objects.length + 1];
@@ -246,6 +405,39 @@ public class ReferralFileServiceImpl implements ReferralFileService {
         pdf.append("startxref\n").append(xrefOffset).append('\n');
         pdf.append("%%EOF");
         return pdf.toString().getBytes(StandardCharsets.US_ASCII);
+    }
+
+    private int appendPdfSection(StringBuilder content, int y, String title, String[] lines) {
+        y = appendPdfText(content, "F2", 13, 54, y, title.toUpperCase(Locale.ROOT), 18);
+        appendPdfDivider(content, y + 4);
+        y -= 12;
+        for (String line : lines) {
+            y = appendPdfText(content, "F1", 11, 60, y, "- " + line, 14);
+        }
+        return y - 8;
+    }
+
+    private int appendPdfText(StringBuilder content, String font, int size, int x, int y, String text, int gap) {
+        content.append("BT\n/")
+                .append(font)
+                .append(' ')
+                .append(size)
+                .append(" Tf\n1 0 0 1 ")
+                .append(x)
+                .append(' ')
+                .append(y)
+                .append(" Tm\n(")
+                .append(escapePdf(text))
+                .append(") Tj\nET\n");
+        return y - gap;
+    }
+
+    private void appendPdfDivider(StringBuilder content, int y) {
+        content.append("0.78 0.58 0.40 RG\n1 w\n54 ")
+                .append(y)
+                .append(" m\n540 ")
+                .append(y)
+                .append(" l\nS\n");
     }
 
     private String escapePdf(String text) {

@@ -10,7 +10,9 @@ server:
 spring:
   config:
     import:
+      - optional:file:../config/shared-local.yml
       - optional:file:./config/shared-local.yml
+      - optional:file:../config/referral-app-local.yml
       - optional:file:./config/referral-app-local.yml
   application:
     name: referral-app

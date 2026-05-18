@@ -4,13 +4,13 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 REPLACE INTO ref_company_info (
-  id, company_name, industry, company_size, city, address, company_desc, official_website, status
+  id, company_name, industry, company_size, city, address, company_desc, logo_url, official_website, status
 ) VALUES
-  (3001, '腾讯', '互联网', '10000人以上', '深圳', '广东省深圳市南山区海天二路33号腾讯滨海大厦', '综合互联网科技企业，覆盖社交、内容、云服务与企业数字化等业务。', 'https://www.tencent.com', 1),
-  (3002, '字节跳动', '互联网', '10000人以上', '上海', '上海市杨浦区政立路489号创智天地', '以内容平台、协同办公和全球化产品为核心的科技企业。', 'https://www.bytedance.com', 1),
-  (3003, '阿里云', '云计算', '10000人以上', '杭州', '浙江省杭州市西湖区转塘科技园', '阿里巴巴集团面向企业的云计算与数字化基础设施平台。', 'https://www.alibabacloud.com', 1),
-  (3004, '美团', '生活服务', '10000人以上', '北京', '北京市朝阳区望京东路4号', '连接到店、到家、出行与零售等场景的生活服务科技公司。', 'https://www.meituan.com', 1),
-  (3005, '华为', 'ICT', '10000人以上', '深圳', '广东省深圳市龙岗区坂田华为基地', '覆盖通信设备、云、终端与数字能源等业务的 ICT 企业。', 'https://www.huawei.com', 1);
+  (3001, '腾讯', '互联网', '10000人以上', '深圳', '广东省深圳市南山区海天二路33号腾讯滨海大厦', '综合互联网科技企业，覆盖社交、内容、云服务与企业数字化等业务。', '/uploads/demo/company/tencent.png', 'https://www.tencent.com', 1),
+  (3002, '字节跳动', '互联网', '10000人以上', '上海', '上海市杨浦区政立路489号创智天地', '以内容平台、协同办公和全球化产品为核心的科技企业。', '/uploads/demo/company/bytedance.png', 'https://www.bytedance.com', 1),
+  (3003, '阿里云', '云计算', '10000人以上', '杭州', '浙江省杭州市西湖区转塘科技园', '阿里巴巴集团面向企业的云计算与数字化基础设施平台。', '/uploads/demo/company/alibabacloud.png', 'https://www.alibabacloud.com', 1),
+  (3004, '美团', '生活服务', '10000人以上', '北京', '北京市朝阳区望京东路4号', '连接到店、到家、出行与零售等场景的生活服务科技公司。', '/uploads/demo/company/meituan.png', 'https://www.meituan.com', 1),
+  (3005, '华为', 'ICT', '10000人以上', '深圳', '广东省深圳市龙岗区坂田华为基地', '覆盖通信设备、云、终端与数字能源等业务的 ICT 企业。', '/uploads/demo/company/huawei.png', 'https://www.huawei.com', 1);
 
 REPLACE INTO ref_alumni_info (
   id, user_id, real_name, gender, graduation_year, college, major, company_id, company_name,
@@ -32,15 +32,15 @@ REPLACE INTO ref_student_info (
   expected_industry, expected_job, expected_city, skill_tags, resume_url, intro
 ) VALUES
   (2001, 201, '王同学', 1, '2022001001', '计算机与通信学院', '计算机科学与技术', '2022级', '本科',
-   '互联网', 'Java后端开发', '上海', 'Java,Spring Boot,MySQL,Redis', '/uploads/demo/resume/wang.pdf', '做过校内管理系统和招聘平台项目，希望从事后端开发岗位。'),
+   '互联网', 'Java后端开发', '上海', 'Java,Spring Boot,MySQL,Redis', '/uploads/demo/resume/wang_backend_resume.pdf', '做过校内管理系统和招聘平台项目，希望从事后端开发岗位。'),
   (2002, 202, '赵同学', 2, '2022001002', '计算机与通信学院', '软件工程', '2022级', '本科',
-   '人工智能', '推荐算法工程师', '杭州', 'Python,机器学习,推荐系统,数据分析', '/uploads/demo/resume/zhao.pdf', '做过推荐算法课程项目，希望尝试真实业务场景。'),
+   '人工智能', '推荐算法工程师', '杭州', 'Python,机器学习,推荐系统,数据分析', '/uploads/demo/resume/zhao_algorithm_resume.pdf', '做过推荐算法课程项目，希望尝试真实业务场景。'),
   (2003, 203, '刘同学', 1, '2022001003', '信息工程学院', '网络工程', '2022级', '本科',
-   '云计算', '云平台开发', '杭州', 'Java,Go,Docker,Kubernetes', '/uploads/demo/resume/wang.pdf', '熟悉容器化部署和服务治理，期望从事云平台与基础设施研发。'),
+   '云计算', '云平台开发', '杭州', 'Java,Go,Docker,Kubernetes', '/uploads/demo/resume/liu_cloud_resume.pdf', '熟悉容器化部署和服务治理，期望从事云平台与基础设施研发。'),
   (2004, 204, '孙同学', 2, '2022001004', '电子信息学院', '数字媒体技术', '2022级', '本科',
-   '互联网', '前端开发工程师', '北京', 'Vue3,TypeScript,Element Plus,工程化', '/uploads/demo/resume/zhao.pdf', '有活动页和管理后台开发经验，关注前端体验与组件设计。'),
+   '互联网', '前端开发工程师', '北京', 'Vue3,TypeScript,Element Plus,工程化', '/uploads/demo/resume/sun_frontend_resume.pdf', '有活动页和管理后台开发经验，关注前端体验与组件设计。'),
   (2005, 205, '黄同学', 1, '2022001005', '自动化学院', '自动化', '2022级', '本科',
-   'ICT', '软件开发工程师', '深圳', 'C++,Java,操作系统,网络协议', '/uploads/demo/resume/wang.pdf', '做过设备侧软件课程设计，希望进入大型研发团队。');
+   'ICT', '软件开发工程师', '深圳', 'C++,Java,操作系统,网络协议', '/uploads/demo/resume/huang_software_resume.pdf', '做过设备侧软件课程设计，希望进入大型研发团队。');
 
 REPLACE INTO ref_auth_account (
   id, username, password, role, user_id, profile_id
@@ -86,14 +86,18 @@ REPLACE INTO ref_referral_application (
   id, job_id, student_id, alumni_id, resume_url, self_introduction, match_score, apply_status,
   process_remark, apply_time, process_time
 ) VALUES
-  (5001, 4001, 2001, 1001, '/uploads/demo/resume/wang.pdf', '我有 Java Web 与数据库设计经验，希望从事后端开发岗位。', 89.50, 1,
+  (5001, 4001, 2001, 1001, '/uploads/demo/resume/wang_backend_resume.pdf', '我有 Java Web 与数据库设计经验，希望从事后端开发岗位。', 89.50, 1,
    '已查看简历，建议补充项目中的接口性能优化细节。', NOW(), NOW()),
-  (5002, 4002, 2002, 1002, '/uploads/demo/resume/zhao.pdf', '做过推荐算法课程项目，希望尝试真实推荐业务链路。', 92.00, 2,
+  (5002, 4002, 2002, 1002, '/uploads/demo/resume/zhao_algorithm_resume.pdf', '做过推荐算法课程项目，希望尝试真实推荐业务链路。', 92.00, 2,
    '已转入部门面试流程，请继续准备项目复盘。', NOW(), NOW()),
-  (5003, 4003, 2003, 1003, '/uploads/demo/resume/wang.pdf', '熟悉容器编排和服务治理，希望进入云平台研发方向。', 90.00, 0,
+  (5003, 4003, 2003, 1003, '/uploads/demo/resume/liu_cloud_resume.pdf', '熟悉容器编排和服务治理，希望进入云平台研发方向。', 90.00, 0,
    '待校友查看。', NOW(), NULL),
-  (5004, 4004, 2004, 1004, '/uploads/demo/resume/zhao.pdf', '有管理后台和活动页开发经历，希望进入前端工程岗位。', 87.00, 4,
-   '流程已完成，建议继续跟进正式 offer。', NOW(), NOW());
+  (5004, 4004, 2004, 1004, '/uploads/demo/resume/sun_frontend_resume.pdf', '有管理后台和活动页开发经历，希望进入前端工程岗位。', 87.00, 4,
+   '流程已完成，建议继续跟进正式 offer。', NOW(), NOW()),
+  (5005, 4010, 2001, 1002, '/uploads/demo/resume/wang_data_resume.pdf', '我可以补充数据分析、指标拆解和业务汇报相关经历，适配偏数据策略的岗位。', 84.00, 1,
+   '已查看补充简历，建议继续突出分析框架和结果表达。', NOW(), NOW()),
+  (5006, 4011, 2001, 1003, '/uploads/demo/resume/wang_platform_resume.pdf', '这版简历更突出平台后端、接口治理和稳定性优化经验，适合基础平台研发岗位。', 88.00, 0,
+   '等待校友查看平台向版本简历。', NOW(), NULL);
 
 REPLACE INTO ref_consult_message (
   id, job_id, sender_user_id, receiver_user_id, sender_role, receiver_role, content, read_status, send_time

@@ -2,14 +2,18 @@ package cn.iocoder.yudao.module.referral.controller.admin.dashboard;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.ApplicationTrendRespVO;
+import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.AlumniProcessingTrendRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.CityDistributionRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.HotJobRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.IndustryDistributionRespVO;
+import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.KeywordCloudRespVO;
+import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.MapDistributionRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.ReferralOverviewRespVO;
 import cn.iocoder.yudao.module.referral.service.dashboard.DashboardService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.annotation.Resource;
 
@@ -47,5 +51,20 @@ public class DashboardController {
     @GetMapping("/application-trend")
     public CommonResult<List<ApplicationTrendRespVO>> applicationTrend() {
         return success(dashboardService.getApplicationTrend());
+    }
+
+    @GetMapping("/map-distribution")
+    public CommonResult<List<MapDistributionRespVO>> mapDistribution() {
+        return success(dashboardService.getMapDistribution());
+    }
+
+    @GetMapping("/keyword-cloud")
+    public CommonResult<List<KeywordCloudRespVO>> keywordCloud() {
+        return success(dashboardService.getKeywordCloud());
+    }
+
+    @GetMapping("/alumni-processing-trend")
+    public CommonResult<List<AlumniProcessingTrendRespVO>> alumniProcessingTrend(@RequestParam(value = "days", required = false) Integer days) {
+        return success(dashboardService.getAlumniProcessingTrend(days));
     }
 }

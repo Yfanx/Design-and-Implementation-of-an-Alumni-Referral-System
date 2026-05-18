@@ -11,6 +11,8 @@ public class ConsultMessageRespVO {
     private Long jobId;
     private Long senderUserId;
     private Long receiverUserId;
+    private String senderDisplayName;
+    private String receiverDisplayName;
     private Integer senderRole;
     private Integer receiverRole;
     private String content;

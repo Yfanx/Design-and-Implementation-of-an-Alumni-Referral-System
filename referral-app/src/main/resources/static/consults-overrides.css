@@ -1,0 +1,132 @@
+.workspace-shell[data-page-key="consults"] .workspace-main {
+    width: min(1760px, calc(100vw - 24px));
+    padding: 18px 20px 30px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-workspace-v3 {
+    grid-template-columns: minmax(318px, 352px) minmax(0, 1fr) minmax(288px, 320px);
+    gap: 20px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-header {
+    padding: 20px 20px 14px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-header h2 {
+    font-size: 22px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-header p {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-toolbar {
+    padding: 0 20px 14px;
+    gap: 10px;
+    align-items: center;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-search {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-search,
+.workspace-shell[data-page-key="consults"] .consult-unread-toggle,
+.workspace-shell[data-page-key="consults"] .consult-unread-back {
+    min-height: 38px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-list {
+    gap: 10px;
+    padding: 0 20px 16px;
+    background: linear-gradient(180deg, rgba(250, 252, 255, 0.62), rgba(246, 248, 252, 0.5));
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-card {
+    padding: 14px 14px 13px;
+    gap: 12px;
+    align-items: start;
+    border-radius: 18px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-avatar-wrap {
+    padding-top: 0;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-main {
+    gap: 5px;
+    min-width: 0;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-job-block {
+    min-width: 0;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-job-title,
+.workspace-shell[data-page-key="consults"] .consult-thread-subtitle,
+.workspace-shell[data-page-key="consults"] .consult-thread-preview {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-job-title {
+    font-size: 15px;
+    line-height: 1.3;
+    color: #173052;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-subtitle,
+.workspace-shell[data-page-key="consults"] .consult-thread-preview,
+.workspace-shell[data-page-key="consults"] .consult-thread-time {
+    font-size: 12px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-subtitle {
+    color: #7587a3;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-preview {
+    color: #5f7597;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-side {
+    gap: 8px;
+    align-items: flex-start;
+    min-width: 26px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-unread-dot {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    font-size: 11px;
+}
+
+.workspace-shell[data-page-key="consults"] .consult-thread-footer {
+    padding: 0 20px 18px;
+    justify-content: flex-start;
+    color: #6b7280;
+    font-size: 12px;
+}

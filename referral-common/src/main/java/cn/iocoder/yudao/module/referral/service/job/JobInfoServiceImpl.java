@@ -7,10 +7,12 @@ import cn.iocoder.yudao.module.referral.controller.admin.job.vo.JobInfoMatchPage
 import cn.iocoder.yudao.module.referral.controller.admin.job.vo.JobInfoPageReqVO;
 import cn.iocoder.yudao.module.referral.controller.admin.job.vo.JobInfoRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.job.vo.JobInfoUpdateReqVO;
+import cn.iocoder.yudao.module.referral.dal.dataobject.student.StudentInfoDO;
 import cn.iocoder.yudao.module.referral.dal.dataobject.company.CompanyInfoDO;
 import cn.iocoder.yudao.module.referral.dal.dataobject.job.JobInfoDO;
 import cn.iocoder.yudao.module.referral.enums.JobAuditStatusEnum;
 import cn.iocoder.yudao.module.referral.enums.JobStatusEnum;
+import cn.iocoder.yudao.module.referral.service.match.JobMatchService;
 import cn.iocoder.yudao.module.referral.support.ReferralActorContext;
 import cn.iocoder.yudao.module.referral.support.ReferralDemoStore;
 import jakarta.annotation.Resource;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -36,6 +39,9 @@ public class JobInfoServiceImpl implements JobInfoService {
 
     @Autowired(required = false)
     private JdbcTemplate jdbcTemplate;
+
+    @Resource
+    private JobMatchService jobMatchService;
 
     @Override
     public Long createJobInfo(JobInfoCreateReqVO createReqVO) {
@@ -127,7 +133,7 @@ public class JobInfoServiceImpl implements JobInfoService {
     public JobInfoRespVO getJobInfo(Long id) {
         if (storageProperties.isMysqlMode()) {
             List<JobInfoRespVO> list = jdbcTemplate.query("""
-                    SELECT j.id, j.alumni_id, j.company_id, c.company_name, j.job_title, j.job_type, j.industry, j.city,
+                    SELECT j.id, j.alumni_id, j.company_id, c.company_name, c.logo_url, j.job_title, j.job_type, j.industry, j.city,
                            j.salary_range, j.education_requirement, j.experience_requirement, j.skill_requirement,
                            j.job_desc, j.contact_type, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
                     FROM ref_job_info j
@@ -146,7 +152,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         Long scopedAlumniId = actor.isAlumni() ? actor.requireProfileId("缺少当前校友档案信息") : pageReqVO.getAlumniId();
         if (storageProperties.isMysqlMode()) {
             List<JobInfoRespVO> list = jdbcTemplate.query("""
-                    SELECT j.id, j.alumni_id, j.company_id, c.company_name, j.job_title, j.job_type, j.industry, j.city,
+                    SELECT j.id, j.alumni_id, j.company_id, c.company_name, c.logo_url, j.job_title, j.job_type, j.industry, j.city,
                            j.salary_range, j.education_requirement, j.experience_requirement, j.skill_requirement,
                            j.job_desc, j.contact_type, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
                     FROM ref_job_info j
@@ -195,9 +201,11 @@ public class JobInfoServiceImpl implements JobInfoService {
 
     @Override
     public PageResult<JobInfoRespVO> getJobMatchPage(JobInfoMatchPageReqVO pageReqVO) {
+        ReferralActorContext.Actor actor = ReferralActorContext.getCurrentActor();
+        StudentInfoDO student = actor.isStudent() ? getStudent(actor.requireProfileId("缺少当前学生档案信息")) : null;
         if (storageProperties.isMysqlMode()) {
             List<JobInfoRespVO> list = jdbcTemplate.query("""
-                    SELECT j.id, j.alumni_id, j.company_id, c.company_name, j.job_title, j.job_type, j.industry, j.city,
+                    SELECT j.id, j.alumni_id, j.company_id, c.company_name, c.logo_url, j.job_title, j.job_type, j.industry, j.city,
                            j.salary_range, j.education_requirement, j.experience_requirement, j.skill_requirement,
                            j.job_desc, j.contact_type, j.referral_quota, j.status, j.audit_status, j.publish_time, j.expire_time
                     FROM ref_job_info j
@@ -212,6 +220,12 @@ public class JobInfoServiceImpl implements JobInfoService {
                     .filter(item -> pageReqVO.getEducation() == null || item.getEducationRequirement().contains(pageReqVO.getEducation()))
                     .filter(item -> pageReqVO.getKeyword() == null || item.getJobTitle().contains(pageReqVO.getKeyword())
                             || item.getJobDesc().contains(pageReqVO.getKeyword()))
+                    .peek(item -> attachMatchInfo(item, student))
+                    .sorted(Comparator.comparing(JobInfoRespVO::getMatchScore,
+                            Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(JobInfoRespVO::getPublishTime,
+                                    Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(JobInfoRespVO::getId, Comparator.reverseOrder()))
                     .toList();
             return new PageResult<>(list, (long) list.size());
         }
@@ -226,6 +240,12 @@ public class JobInfoServiceImpl implements JobInfoService {
                         || item.getJobTitle().contains(pageReqVO.getKeyword())
                         || item.getJobDesc().contains(pageReqVO.getKeyword()))
                 .map(this::convert)
+                .peek(item -> attachMatchInfo(item, student))
+                .sorted(Comparator.comparing(JobInfoRespVO::getMatchScore,
+                        Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(JobInfoRespVO::getPublishTime,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(JobInfoRespVO::getId, Comparator.reverseOrder()))
                 .toList();
         return new PageResult<>(filtered, (long) filtered.size());
     }
@@ -340,6 +360,50 @@ public class JobInfoServiceImpl implements JobInfoService {
         return new AlumniCompanyBinding(alumniInfo.getCompanyId(), alumniInfo.getCompanyName());
     }
 
+    private StudentInfoDO getStudent(Long studentId) {
+        if (studentId == null) {
+            return null;
+        }
+        if (storageProperties.isMysqlMode()) {
+            List<StudentInfoDO> students = jdbcTemplate.query("""
+                    SELECT id, user_id, real_name, gender, student_no, college, major, grade, education,
+                           expected_industry, expected_job, expected_city, skill_tags, resume_url, intro
+                    FROM ref_student_info
+                    WHERE id = ?
+                    """, (rs, rowNum) -> {
+                StudentInfoDO student = new StudentInfoDO();
+                student.setId(rs.getLong("id"));
+                student.setUserId(rs.getLong("user_id"));
+                student.setRealName(rs.getString("real_name"));
+                student.setGender(rs.getInt("gender"));
+                student.setStudentNo(rs.getString("student_no"));
+                student.setCollege(rs.getString("college"));
+                student.setMajor(rs.getString("major"));
+                student.setGrade(rs.getString("grade"));
+                student.setEducation(rs.getString("education"));
+                student.setExpectedIndustry(rs.getString("expected_industry"));
+                student.setExpectedJob(rs.getString("expected_job"));
+                student.setExpectedCity(rs.getString("expected_city"));
+                student.setSkillTags(rs.getString("skill_tags"));
+                student.setResumeUrl(rs.getString("resume_url"));
+                student.setIntro(rs.getString("intro"));
+                return student;
+            }, studentId);
+            return students.isEmpty() ? null : students.get(0);
+        }
+        return referralDemoStore.getStudent(studentId);
+    }
+
+    private void attachMatchInfo(JobInfoRespVO target, StudentInfoDO student) {
+        if (target == null || student == null) {
+            return;
+        }
+        JobMatchService.JobMatchResult result = jobMatchService.calculate(target, student);
+        target.setMatchScore(result.matchScore());
+        target.setMatchSummary(result.matchSummary());
+        target.setMatchBreakdown(result.matchBreakdown());
+    }
+
     private JobInfoRespVO convert(JobInfoDO source) {
         CompanyInfoDO companyInfo = referralDemoStore.getCompany(source.getCompanyId());
         JobInfoRespVO target = new JobInfoRespVO();
@@ -347,6 +411,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         target.setAlumniId(source.getAlumniId());
         target.setCompanyId(source.getCompanyId());
         target.setCompanyName(companyInfo == null ? null : companyInfo.getCompanyName());
+        target.setCompanyLogoUrl(companyInfo == null ? null : companyInfo.getLogoUrl());
         target.setJobTitle(source.getJobTitle());
         target.setJobType(source.getJobType());
         target.setIndustry(source.getIndustry());
@@ -371,6 +436,7 @@ public class JobInfoServiceImpl implements JobInfoService {
         target.setAlumniId(rs.getLong("alumni_id"));
         target.setCompanyId(rs.getLong("company_id"));
         target.setCompanyName(rs.getString("company_name"));
+        target.setCompanyLogoUrl(rs.getString("logo_url"));
         target.setJobTitle(rs.getString("job_title"));
         target.setJobType(rs.getString("job_type"));
         target.setIndustry(rs.getString("industry"));

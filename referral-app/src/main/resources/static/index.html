@@ -1,10 +1,29 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=/login.html">
-    <title>Redirecting...</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260517-unified-ui-1">
+    <title>校友内推平台</title>
+    <script>
+      (() => {
+        let target = "/login.html";
+        try {
+          const raw = localStorage.getItem("referral_app_user");
+          if (raw) {
+            const session = JSON.parse(raw);
+            target = session?.landingPage || "/dashboard.html";
+          }
+        } catch (error) {
+          target = "/login.html";
+        }
+        location.replace(target);
+      })();
+    </script>
+    <noscript>
+        <meta http-equiv="refresh" content="0; url=/login.html">
+    </noscript>
 </head>
 <body></body>
 </html>
-

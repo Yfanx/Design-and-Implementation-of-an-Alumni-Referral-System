@@ -1,22 +1,9 @@
-function getQueryParams() {
-  return new URLSearchParams(location.search);
-}
-
-function calculateMatchScore(job) {
-  let score = 68;
-  if ((job.skillRequirement || "").includes("Java")) score += 10;
-  if ((job.skillRequirement || "").includes("Spring")) score += 7;
-  if (["上海", "杭州", "北京", "深圳"].includes(job.city)) score += 5;
-  if (job.educationRequirement === "本科") score += 4;
-  return Math.min(score, 97);
-}
-
 async function loadStudentJobs() {
   const result = await apiRequest("/referral/job-info/match-list");
   return result.data?.list || [];
 }
 
-async function loadStudentApplications() {
+async function loadApplications() {
   const result = await apiRequest("/referral/referral-application/list");
   return result.data?.list || [];
 }
@@ -32,400 +19,510 @@ async function loadCurrentAlumniProfile(session) {
 }
 
 function uniqueValues(list, selector) {
-  return Array.from(new Set((list || []).map(selector).filter(Boolean)));
+  return Array.from(new Set((list || []).map(selector).filter(Boolean)))
+    .sort((left, right) => left.localeCompare(right, "zh-CN"));
 }
 
-function buildJobFormInitial(alumniProfile, initial = {}) {
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getJobFilters() {
+  const query = new URLSearchParams(location.search);
   return {
-    id: initial.id || "",
-    companyId: initial.companyId || alumniProfile.companyId || "",
-    companyName: initial.companyName || alumniProfile.companyName || "",
-    jobTitle: initial.jobTitle || "",
-    jobType: initial.jobType || "校招",
-    industry: initial.industry || alumniProfile.industry || "互联网",
-    city: initial.city || alumniProfile.city || "上海",
-    salaryRange: initial.salaryRange || "",
-    educationRequirement: initial.educationRequirement || "本科",
-    experienceRequirement: initial.experienceRequirement || "",
-    skillRequirement: initial.skillRequirement || "",
-    jobDesc: initial.jobDesc || "",
-    contactType: initial.contactType || "站内消息",
-    referralQuota: initial.referralQuota || 3,
-    expireTime: initial.expireTime || ""
+    keyword: query.get("keyword") || "",
+    company: query.get("company") || "",
+    city: query.get("city") || "",
+    industry: query.get("industry") || ""
   };
 }
 
-function openJobEditor({ title, subtitle, alumniProfile, initial = {}, onSubmit }) {
-  const safe = buildJobFormInitial(alumniProfile, initial);
-  const hasCompanyBinding = !!safe.companyId && !!safe.companyName;
+function buildJobFilterQuery() {
+  const params = new URLSearchParams({
+    keyword: document.getElementById("job-keyword")?.value || "",
+    company: document.getElementById("job-company")?.value || "",
+    city: document.getElementById("job-city")?.value || "",
+    industry: document.getElementById("job-industry")?.value || ""
+  });
+  location.href = `/jobs.html?${params.toString()}`;
+}
+
+function renderSelectOptions(values, selected, emptyLabel) {
+  return `
+    <option value="">${emptyLabel}</option>
+    ${(values || []).map((value) => `
+      <option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(value)}</option>
+    `).join("")}
+  `;
+}
+
+function filterStudentJobs(jobs, filters) {
+  const keyword = normalizeText(filters.keyword);
+  return (jobs || []).filter((item) => {
+    const keywordText = normalizeText([
+      item.jobTitle,
+      item.companyName,
+      item.industry,
+      item.city,
+      item.skillRequirement,
+      item.jobDesc
+    ].join(" "));
+    return (!keyword || keywordText.includes(keyword))
+      && (!filters.company || item.companyName === filters.company)
+      && (!filters.city || item.city === filters.city)
+      && (!filters.industry || item.industry === filters.industry);
+  });
+}
+
+function buildStudentSpotlightCards(jobs = []) {
+  return jobs.slice(0, 3).map((job, index) => `
+    <article class="compact-item">
+      <div class="split-header">
+        <div>
+          <strong>${escapeHtml(job.jobTitle || "-")}</strong>
+          <div class="job-card-company">${escapeHtml(job.companyName || "-")} / ${escapeHtml(job.city || "-")}</div>
+        </div>
+        <span class="pill">TOP ${index + 1}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-tag">${escapeHtml(job.industry || "行业不限")}</span>
+        <span class="meta-tag">${escapeHtml(job.educationRequirement || "学历不限")}</span>
+        <span class="meta-tag">${asNumber(job.matchScore)}%</span>
+      </div>
+    </article>
+  `).join("") || `<div class="empty-state">暂无推荐岗位</div>`;
+}
+
+function renderStudentPriorityCards(jobs = []) {
+  return jobs.slice(0, 3).map((job, index) => `
+    <article class="jobs-priority-card">
+      <div class="jobs-priority-rank jobs-priority-rank-${index + 1}">TOP ${index + 1}</div>
+      <div class="jobs-priority-copy">
+        <strong>${escapeHtml(job.jobTitle || "-")}</strong>
+        <span>${escapeHtml(job.companyName || "-")} / ${escapeHtml(job.city || "-")}</span>
+        <div class="meta-row">
+          <span class="meta-tag">${escapeHtml(job.industry || "行业不限")}</span>
+          <span class="meta-tag">${escapeHtml(job.educationRequirement || "学历不限")}</span>
+          <span class="meta-tag jobs-match-tag">${asNumber(job.matchScore)}%</span>
+        </div>
+      </div>
+      <a class="jobs-priority-link" href="/job-detail.html?id=${job.id}">›</a>
+    </article>
+  `).join("") || '<div class="empty-state">暂无推荐岗位</div>';
+}
+
+function buildJobsMetricIcon(type) {
+  const icons = {
+    results: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>',
+    applied: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 10 18l10-12"></path><path d="M4 6h8"></path></svg>',
+    score: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"></path><path d="M5 12h14"></path><path d="M7.5 7.5 12 12l4.5-4.5"></path></svg>'
+  };
+  return `<span class="jobs-metric-icon jobs-metric-icon-${type}">${icons[type] || icons.results}</span>`;
+}
+
+function buildJobSkillTags(job) {
+  const tags = String(job.skillRequirement || "")
+    .split(/[、,，/| ]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  if (!tags.length) {
+    return `
+      <span class="meta-tag">${escapeHtml(job.industry || "行业方向")}</span>
+      <span class="meta-tag">${escapeHtml(job.educationRequirement || "学历不限")}</span>
+      <span class="meta-tag">内推岗位</span>
+    `;
+  }
+  return tags.map((item) => `<span class="meta-tag">${escapeHtml(item)}</span>`).join("");
+}
+
+function renderJobsHotFilters(jobs = []) {
+  const terms = [];
+  jobs.slice(0, 6).forEach((item) => {
+    [item.jobTitle, item.city, item.industry].forEach((value) => {
+      const text = String(value || "").trim();
+      if (text && !terms.includes(text) && terms.length < 6) {
+        terms.push(text);
+      }
+    });
+  });
+  return terms.map((term) => `<span class="jobs-hot-chip">${escapeHtml(term)}</span>`).join("");
+}
+
+function renderJobsPreferenceSummary(filters, rankedJobs) {
+  const topCities = Array.from(new Set(rankedJobs.map((item) => item.city).filter(Boolean))).slice(0, 2).join(" / ") || "城市不限";
+  const topIndustries = Array.from(new Set(rankedJobs.map((item) => item.industry).filter(Boolean))).slice(0, 2).join(" / ") || "行业不限";
+  return `
+    <div class="jobs-preference-list">
+      <div><span>方向</span><strong>${escapeHtml(filters.keyword || "后端开发")}</strong></div>
+      <div><span>城市</span><strong>${escapeHtml(filters.city || topCities)}</strong></div>
+      <div><span>行业</span><strong>${escapeHtml(filters.industry || topIndustries)}</strong></div>
+      <div><span>学历</span><strong>本科及以上</strong></div>
+    </div>
+  `;
+}
+
+function renderJobsTipsPanel(appliedJobIds, favoriteIds) {
+  return `
+    <div class="jobs-tip-list">
+      <div><strong>优先投递高匹配岗位</strong><span>已在处理 ${appliedJobIds.size} 个岗位，建议优先跟进高匹配机会。</span></div>
+      <div><strong>保持简历完整度</strong><span>收藏中的 ${favoriteIds.length} 个岗位建议结合资料页继续补充亮点。</span></div>
+      <div><strong>主动跟进校友沟通</strong><span>投递后可通过消息中心及时沟通，增加曝光机会。</span></div>
+    </div>
+  `;
+}
+
+function renderJobKeywordField(value = "", placeholder = "搜索岗位") {
+  return `
+    <label class="job-search-keyword">
+      <span class="job-search-keyword-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+      </span>
+      <input id="job-keyword" value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}">
+    </label>
+  `;
+}
+
+function buildStudentJobCard(job, favoriteIds, appliedJobIds) {
+  const favorited = favoriteIds.includes(Number(job.id));
+  const applied = appliedJobIds.has(Number(job.id));
+  return `
+    <article class="job-card market-job-card">
+      <div class="job-card-top">
+        <div>
+          <h3 class="job-card-title">${escapeHtml(job.jobTitle || "-")}</h3>
+          <div class="job-card-company">${escapeHtml(job.companyName || "-")} / ${escapeHtml(job.city || "-")}</div>
+        </div>
+        <div class="market-job-salary">
+          <strong>${escapeHtml(job.salaryRange || "薪资面议")}</strong>
+          <span class="status-badge ${applied ? "status-approved" : "status-pending"}">${applied ? "已投递" : "未投递"}</span>
+        </div>
+      </div>
+      <div class="meta-row">
+        <span class="meta-tag">${escapeHtml(job.industry || "行业不限")}</span>
+        <span class="meta-tag">${escapeHtml(job.educationRequirement || "学历不限")}</span>
+        <span class="meta-tag jobs-match-tag">匹配 ${asNumber(job.matchScore)}%</span>
+      </div>
+      <p class="job-card-desc">${escapeHtml(job.jobDesc || "暂无岗位描述。")}</p>
+      <div class="meta-row market-job-tags">
+        ${buildJobSkillTags(job)}
+      </div>
+      <div class="job-card-actions">
+        <button class="btn ghost-btn favorite-btn ${favorited ? "active-favorite" : ""}" data-job-id="${job.id}">
+          ${favorited ? "已收藏" : "收藏岗位"}
+        </button>
+        <a class="btn ghost-btn" href="/job-detail.html?id=${job.id}">查看详情</a>
+        <a class="btn" href="/applications.html?jobId=${job.id}">${applied ? "查看申请" : "立即投递"}</a>
+      </div>
+    </article>
+  `;
+}
+
+function renderStudentJobs(session, jobs, favoriteIds, applications) {
+  const filters = getJobFilters();
+  const filteredJobs = filterStudentJobs(jobs, filters);
+  const rankedJobs = filteredJobs.slice().sort((left, right) => asNumber(right.matchScore) - asNumber(left.matchScore));
+  const companies = uniqueValues(jobs, (item) => item.companyName);
+  const cities = uniqueValues(jobs, (item) => item.city);
+  const industries = uniqueValues(jobs, (item) => item.industry);
+  const appliedJobIds = new Set(
+    (applications || [])
+      .filter((item) => Number(item.applyStatus) !== 5)
+      .map((item) => Number(item.jobId))
+  );
+  const averageScore = rankedJobs.length
+    ? Math.round(rankedJobs.reduce((sum, item) => sum + asNumber(item.matchScore), 0) / rankedJobs.length)
+    : 0;
+
+  renderAppLayout("jobs", "职位广场", "", `
+    <section class="job-search-hero reveal">
+      <div class="hero-panel">
+        <span class="hero-kicker">岗位检索</span>
+        <h2>快速找到适合你的校友内推岗位</h2>
+        <p>按关键词、企业、城市和行业筛选，结果按匹配度优先展示。</p>
+        <div class="search-bar job-search-bar">
+          <input id="job-keyword" value="${escapeHtml(filters.keyword)}" placeholder="搜索岗位、企业或技能">
+          <select id="job-company">${renderSelectOptions(companies, filters.company, "企业不限")}</select>
+          <select id="job-city">${renderSelectOptions(cities, filters.city, "城市不限")}</select>
+          <select id="job-industry">${renderSelectOptions(industries, filters.industry, "行业不限")}</select>
+          <button class="btn" id="search-job-btn">开始筛选</button>
+        </div>
+        <div class="hero-stat-row">
+          <div class="hero-stat">
+            <span>结果数</span>
+            <strong>${filteredJobs.length}</strong>
+          </div>
+          <div class="hero-stat">
+            <span>已申请</span>
+            <strong>${appliedJobIds.size}</strong>
+          </div>
+          <div class="hero-stat">
+            <span>平均匹配</span>
+            <strong>${averageScore}%</strong>
+          </div>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <div class="panel-header">
+          <div>
+            <h3>优先推荐</h3>
+            <p>匹配度最高的岗位会优先展示在这里。</p>
+          </div>
+        </div>
+        <div class="compact-list">
+          ${buildStudentSpotlightCards(rankedJobs)}
+        </div>
+      </div>
+    </section>
+    <section class="panel reveal reveal-delay-1">
+      <div class="panel-header">
+        <div>
+          <h2>岗位列表</h2>
+          <p>支持继续收藏、查看详情和发起申请。</p>
+        </div>
+        <span class="meta-tag">${rankedJobs.length} 个岗位</span>
+      </div>
+      <div id="student-job-list" class="job-card-list market-grid"></div>
+    </section>
+  `, { hideDefaultHero: true });
+
+  document.getElementById("student-job-list").innerHTML = rankedJobs.map((job) => (
+    buildStudentJobCard(job, favoriteIds, appliedJobIds)
+  )).join("") || `<div class="empty-state">暂无符合条件的岗位。</div>`;
+
+  document.querySelectorAll(".favorite-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const favorited = await toggleFavoriteJob(session.profileId, button.dataset.jobId);
+        setFavoriteButtonState(button, favorited);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.getElementById("search-job-btn")?.addEventListener("click", buildJobFilterQuery);
+}
+
+function buildJobPayload(form, alumniProfile) {
+  const payload = formPayload(form);
+  payload.companyId = payload.companyId || alumniProfile.companyId;
+  if (!payload.referralQuota) {
+    payload.referralQuota = 1;
+  }
+  return payload;
+}
+
+function openJobEditor({ alumniProfile, job = {}, onSubmit }) {
+  const isEdit = !!job.id;
+  const values = {
+    id: job.id || "",
+    companyId: job.companyId || alumniProfile.companyId || "",
+    companyName: job.companyName || alumniProfile.companyName || "",
+    jobTitle: job.jobTitle || "",
+    jobType: job.jobType || "校招",
+    industry: job.industry || alumniProfile.industry || "互联网",
+    city: job.city || alumniProfile.city || "上海",
+    salaryRange: job.salaryRange || "",
+    educationRequirement: job.educationRequirement || "本科",
+    experienceRequirement: job.experienceRequirement || "",
+    skillRequirement: job.skillRequirement || "",
+    contactType: job.contactType || "站内消息",
+    referralQuota: job.referralQuota || 3,
+    jobDesc: job.jobDesc || ""
+  };
+  const hasCompany = !!values.companyId;
 
   openPageModal({
-    title,
-    subtitle,
+    title: isEdit ? "编辑岗位" : "发布岗位",
+    subtitle: "",
     size: "wide",
     body: `
-      <form class="demo-form" id="job-editor-form">
-        <input type="hidden" name="id" value="${safe.id}">
-        <input type="hidden" name="companyId" value="${safe.companyId}">
+      <form id="job-editor-form" class="demo-form">
+        <input type="hidden" name="id" value="${values.id}">
+        <input type="hidden" name="companyId" value="${values.companyId}">
         <div class="form-grid">
           <label class="form-field">
-            <span>归属企业</span>
-            <input value="${safe.companyName || "请先在我的资料中维护企业信息"}" readonly>
-          </label>
-          <label class="form-field">
-            <span>企业编号</span>
-            <input value="${safe.companyId || "未绑定"}" readonly>
+            <span>企业</span>
+            <input value="${escapeHtml(values.companyName || "未绑定企业")}" readonly>
           </label>
           <label class="form-field">
             <span>岗位名称</span>
-            <input name="jobTitle" value="${safe.jobTitle}" placeholder="例如：Java 后端开发工程师">
+            <input name="jobTitle" value="${escapeHtml(values.jobTitle)}" required>
           </label>
           <label class="form-field">
             <span>岗位类型</span>
             <select name="jobType">
-              <option value="校招" ${safe.jobType === "校招" ? "selected" : ""}>校招</option>
-              <option value="实习" ${safe.jobType === "实习" ? "selected" : ""}>实习</option>
-              <option value="社招" ${safe.jobType === "社招" ? "selected" : ""}>社招</option>
+              ${["校招", "实习", "社招"].map((item) => `<option value="${item}" ${values.jobType === item ? "selected" : ""}>${item}</option>`).join("")}
             </select>
           </label>
           <label class="form-field">
             <span>行业</span>
-            <select name="industry">
-              <option value="互联网" ${safe.industry === "互联网" ? "selected" : ""}>互联网</option>
-              <option value="人工智能" ${safe.industry === "人工智能" ? "selected" : ""}>人工智能</option>
-              <option value="金融科技" ${safe.industry === "金融科技" ? "selected" : ""}>金融科技</option>
-              <option value="制造业" ${safe.industry === "制造业" ? "selected" : ""}>制造业</option>
-            </select>
+            <input name="industry" value="${escapeHtml(values.industry)}">
           </label>
           <label class="form-field">
-            <span>工作城市</span>
-            <select name="city">
-              <option value="上海" ${safe.city === "上海" ? "selected" : ""}>上海</option>
-              <option value="杭州" ${safe.city === "杭州" ? "selected" : ""}>杭州</option>
-              <option value="北京" ${safe.city === "北京" ? "selected" : ""}>北京</option>
-              <option value="深圳" ${safe.city === "深圳" ? "selected" : ""}>深圳</option>
-            </select>
+            <span>城市</span>
+            <input name="city" value="${escapeHtml(values.city)}">
           </label>
           <label class="form-field">
-            <span>薪资范围</span>
-            <input name="salaryRange" value="${safe.salaryRange}" placeholder="例如：15k-25k / 200-300 元/天">
+            <span>薪资</span>
+            <input name="salaryRange" value="${escapeHtml(values.salaryRange)}" placeholder="15k-25k">
           </label>
           <label class="form-field">
-            <span>学历要求</span>
-            <select name="educationRequirement">
-              <option value="本科" ${safe.educationRequirement === "本科" ? "selected" : ""}>本科</option>
-              <option value="硕士" ${safe.educationRequirement === "硕士" ? "selected" : ""}>硕士</option>
-              <option value="博士" ${safe.educationRequirement === "博士" ? "selected" : ""}>博士</option>
-            </select>
+            <span>学历</span>
+            <input name="educationRequirement" value="${escapeHtml(values.educationRequirement)}">
           </label>
           <label class="form-field">
-            <span>经验要求</span>
-            <input name="experienceRequirement" value="${safe.experienceRequirement}" placeholder="例如：有项目经验 / 1-3 年">
+            <span>经验</span>
+            <input name="experienceRequirement" value="${escapeHtml(values.experienceRequirement)}">
           </label>
           <label class="form-field">
-            <span>联系方式</span>
-            <select name="contactType">
-              <option value="站内消息" ${safe.contactType === "站内消息" ? "selected" : ""}>站内消息</option>
-              <option value="邮箱" ${safe.contactType === "邮箱" ? "selected" : ""}>邮箱</option>
-              <option value="微信" ${safe.contactType === "微信" ? "selected" : ""}>微信</option>
-              <option value="电话" ${safe.contactType === "电话" ? "selected" : ""}>电话</option>
-            </select>
+            <span>联系渠道</span>
+            <input name="contactType" value="${escapeHtml(values.contactType)}">
           </label>
           <label class="form-field">
-            <span>内推名额</span>
-            <input name="referralQuota" value="${safe.referralQuota}" placeholder="例如：3">
+            <span>名额</span>
+            <input name="referralQuota" value="${values.referralQuota}">
           </label>
           <label class="form-field field-span-2">
             <span>技能要求</span>
-            <input name="skillRequirement" value="${safe.skillRequirement}" placeholder="例如：Java / Spring Boot / MySQL / Redis">
+            <input name="skillRequirement" value="${escapeHtml(values.skillRequirement)}">
           </label>
           <label class="form-field field-span-2">
-            <span>岗位说明</span>
-            <textarea name="jobDesc" placeholder="说明岗位职责、项目背景、工作节奏与亮点。">${safe.jobDesc}</textarea>
+            <span>岗位描述</span>
+            <textarea name="jobDesc">${escapeHtml(values.jobDesc)}</textarea>
           </label>
         </div>
         <div class="page-action-bar top-gap">
-          <div class="page-action-note">${hasCompanyBinding ? "岗位会自动归属到你在“我的资料”中维护的企业，提交后进入待审核状态。" : "请先到“我的资料”中补充所属企业信息，再发布岗位。"}</div>
+          <div id="job-editor-result" class="action-result">${hasCompany ? "准备保存" : "请先在资料页绑定企业"}</div>
           <div class="action-group">
-            ${hasCompanyBinding ? "" : `<a class="btn ghost-btn" href="/profile.html">去完善资料</a>`}
-            <button type="button" class="btn ghost-btn" id="job-editor-cancel">取消</button>
-            <button type="submit" class="btn" id="job-editor-submit" ${hasCompanyBinding ? "" : "disabled"}>保存岗位</button>
+            ${hasCompany ? "" : `<a class="btn ghost-btn" href="/profile.html">完善资料</a>`}
+            <button type="button" class="btn ghost-btn" id="cancel-job-edit">取消</button>
+            <button type="submit" class="btn" ${hasCompany ? "" : "disabled"}>保存</button>
           </div>
         </div>
       </form>
-      <div id="job-editor-result" class="action-result">请确认岗位信息完整后再提交。</div>
     `,
     onReady(body) {
-      body.querySelector("#job-editor-cancel").addEventListener("click", closePageModal);
-      body.querySelector("#job-editor-form").addEventListener("submit", async (event) => {
+      body.querySelector("#cancel-job-edit")?.addEventListener("click", closePageModal);
+      body.querySelector("#job-editor-form")?.addEventListener("submit", async (event) => {
         event.preventDefault();
-        if (!hasCompanyBinding) {
-          return;
-        }
-        const payload = formPayload(event.target);
-        const result = body.querySelector("#job-editor-result");
-        result.innerText = "正在保存岗位...";
+        const resultNode = body.querySelector("#job-editor-result");
         try {
-          await onSubmit(payload);
-          result.innerText = "岗位保存成功。";
-          setTimeout(() => closePageModal(), 500);
+          resultNode.innerText = "保存中...";
+          await onSubmit(buildJobPayload(event.target, alumniProfile));
+          resultNode.innerText = "已保存";
+          setTimeout(() => location.reload(), 300);
         } catch (error) {
-          result.innerText = error.message || "保存失败，请稍后重试。";
+          resultNode.innerText = error.message || "保存失败";
         }
       });
     }
   });
 }
 
-function openJobAuditDetail(job, { allowAudit = false, onAudit } = {}) {
+function renderAlumniJobCard(job) {
   const badge = jobAuditBadge(Number(job.auditStatus));
-  const defaultRemark = {
-    0: "岗位已提交，等待管理员审核。",
-    1: "岗位已审核通过，学生端可正常查看和投递。",
-    2: "岗位已被驳回，请根据岗位内容、企业归属或联系方式补充后重新提交。"
-  }[Number(job.auditStatus)] || "当前岗位状态已更新。";
-
-  openPageModal({
-    title: "审核详情",
-    subtitle: allowAudit ? "可在查看详情后直接完成通过或驳回。" : "查看当前岗位的审核状态与展示信息。",
-    body: `
-      <div class="compact-list">
-        <div class="compact-item"><strong>${job.jobTitle || "-"}</strong><div class="job-card-company">${job.companyName || "-"} / ${job.city || "-"}</div></div>
-        <div class="compact-item"><strong>审核状态</strong><div class="job-card-company"><span class="status-badge ${badge.cls}">${badge.text}</span></div></div>
-        <div class="compact-item"><strong>联系方式</strong><p>${job.contactType || "站内消息"}</p></div>
-        <div class="compact-item"><strong>发布时间</strong><p>${formatDateTime(job.publishTime)}</p></div>
-        <div class="compact-item"><strong>截止时间</strong><p>${formatDateTime(job.expireTime)}</p></div>
-        <div class="compact-item"><strong>技能要求</strong><p>${job.skillRequirement || "未填写"}</p></div>
-        <div class="compact-item"><strong>岗位说明</strong><p>${job.jobDesc || "未填写"}</p></div>
-        <div class="compact-item"><strong>审核说明</strong><p>${defaultRemark}</p></div>
-      </div>
-      <div class="page-action-bar top-gap">
-        <div class="page-action-note">${allowAudit ? "管理员审核后，学生端只会看到已通过的岗位。" : "校友可根据这里的信息判断是否需要补充岗位内容再重新提交。"}</div>
-        <div class="action-group">
-          <button type="button" class="btn ghost-btn" id="close-job-audit-detail">关闭</button>
-          ${allowAudit ? `
-            <button type="button" class="btn ghost-btn" id="reject-job-btn">驳回岗位</button>
-            <button type="button" class="btn" id="approve-job-btn">通过岗位</button>
-          ` : ""}
+  return `
+    <article class="compact-item">
+      <div class="split-header">
+        <div>
+          <strong>${escapeHtml(job.jobTitle || "-")}</strong>
+          <div class="job-card-company">${escapeHtml(job.companyName || "-")} / ${escapeHtml(job.city || "-")}</div>
         </div>
+        <span class="status-badge ${badge.cls}">${badge.text}</span>
       </div>
-    `,
-    onReady(body) {
-      body.querySelector("#close-job-audit-detail").addEventListener("click", closePageModal);
-      if (!allowAudit) {
-        return;
-      }
-      body.querySelector("#reject-job-btn").addEventListener("click", async () => {
-        await onAudit?.(2);
-      });
-      body.querySelector("#approve-job-btn").addEventListener("click", async () => {
-        await onAudit?.(1);
-      });
-    }
-  });
-}
-
-function renderStudentJobs(session, jobs, favoriteIds, applications) {
-  const query = getQueryParams();
-  const keyword = query.get("keyword") || "";
-  const city = query.get("city") || "";
-  const industry = query.get("industry") || "";
-  const company = query.get("company") || "";
-  const appliedJobIds = new Set((applications || []).filter((item) => Number(item.applyStatus) !== 5).map((item) => Number(item.jobId)));
-  const companies = uniqueValues(jobs, (item) => item.companyName).sort((left, right) => left.localeCompare(right, "zh-CN"));
-  const filteredJobs = jobs
-    .filter((item) => !keyword || item.jobTitle.includes(keyword) || item.companyName.includes(keyword) || (item.skillRequirement || "").includes(keyword))
-    .filter((item) => !city || item.city === city)
-    .filter((item) => !industry || item.industry === industry)
-    .filter((item) => !company || item.companyName === company);
-
-  renderAppLayout("jobs", "职位广场", "按照行业、企业、城市和关键词筛选校友内推岗位。", `
-    <section class="panel reveal">
-      <div class="section-eyebrow">职位市场</div>
-      <div class="panel-header"><div><h2>岗位筛选</h2><p>补上企业维度后，学生可以先按目标公司再看岗位与联系方式。</p></div></div>
-      <div class="search-bar job-search-bar">
-        <input id="job-keyword" value="${keyword}" placeholder="搜索岗位名称、公司或技能关键词">
-        <select id="job-company">
-          <option value="">企业不限</option>
-          ${companies.map((item) => `<option value="${item}" ${company === item ? "selected" : ""}>${item}</option>`).join("")}
-        </select>
-        <select id="job-city">
-          <option value="">城市不限</option>
-          <option value="上海" ${city === "上海" ? "selected" : ""}>上海</option>
-          <option value="杭州" ${city === "杭州" ? "selected" : ""}>杭州</option>
-          <option value="北京" ${city === "北京" ? "selected" : ""}>北京</option>
-          <option value="深圳" ${city === "深圳" ? "selected" : ""}>深圳</option>
-        </select>
-        <select id="job-industry">
-          <option value="">行业不限</option>
-          <option value="互联网" ${industry === "互联网" ? "selected" : ""}>互联网</option>
-          <option value="人工智能" ${industry === "人工智能" ? "selected" : ""}>人工智能</option>
-          <option value="金融科技" ${industry === "金融科技" ? "selected" : ""}>金融科技</option>
-        </select>
-        <button class="btn" id="search-job-btn">筛选职位</button>
+      <div class="meta-row">
+        <span class="meta-tag">${escapeHtml(job.industry || "-")}</span>
+        <span class="meta-tag">${escapeHtml(job.salaryRange || "-")}</span>
+        <span class="meta-tag">名额 ${job.referralQuota || 0}</span>
       </div>
-      <div class="student-summary-strip top-gap">
-        <div class="summary-chip">支持先按企业锁定目标岗位</div>
-        <div class="summary-chip">已投递岗位不会再引导重复投递</div>
-        <div class="summary-chip">岗位卡片直接展示联系方式</div>
+      <p>${escapeHtml(job.jobDesc || "暂无岗位描述。")}</p>
+      <div class="action-group top-gap">
+        <a class="btn ghost-btn" href="/job-detail.html?id=${job.id}">查看详情</a>
+        <button class="btn ghost-btn edit-job-btn" data-id="${job.id}">编辑</button>
+        <button class="btn ghost-btn delete-job-btn" data-id="${job.id}">删除</button>
       </div>
-      <div id="job-market-summary" class="market-marquee">
-        <div class="mini-stat"><span>筛选结果</span><strong>${filteredJobs.length}</strong></div>
-        <div class="mini-stat"><span>企业命中</span><strong>${company || "全部"}</strong></div>
-        <div class="mini-stat"><span>城市命中</span><strong>${city || "全部"}</strong></div>
-        <div class="mini-stat"><span>已投递</span><strong>${appliedJobIds.size}</strong></div>
-      </div>
-    </section>
-    <section class="panel reveal reveal-delay-1"><div id="student-job-list" class="job-card-list market-grid"></div></section>
-  `);
-
-  const listNode = document.getElementById("student-job-list");
-  listNode.innerHTML = filteredJobs.map((item) => {
-    const match = calculateMatchScore(item);
-    const favorited = favoriteIds.includes(item.id);
-    const applied = appliedJobIds.has(Number(item.id));
-    return `
-      <div class="job-card market-job-card reveal" data-job-id="${item.id}">
-        <div class="job-card-top">
-          <div>
-            <h3 class="job-card-title">${item.jobTitle}</h3>
-            <div class="job-card-company">${item.companyName} / ${item.city}</div>
-          </div>
-          <div class="salary">${item.salaryRange || "-"}</div>
-        </div>
-        <div class="meta-row">
-          <span class="meta-tag">${item.industry || "-"}</span>
-          <span class="meta-tag">${item.educationRequirement || "-"}</span>
-          <span class="meta-tag">${item.skillRequirement || "-"}</span>
-          <span class="meta-tag">匹配度 ${match}%</span>
-        </div>
-        <div class="compact-item top-gap">
-          <strong>联系方式</strong>
-          <div class="job-card-company">${item.contactType || "站内消息"}</div>
-        </div>
-        <div class="job-card-actions">
-          <span class="job-card-desc-inline">${item.jobDesc || ""}</span>
-          <div class="action-group">
-            <button class="btn ghost-btn favorite-btn ${favorited ? "active-favorite" : ""}" data-job-id="${item.id}">${favorited ? "已收藏" : "收藏岗位"}</button>
-            <button class="btn detail-btn" data-job-id="${item.id}">查看详情</button>
-            <button class="btn apply-btn" data-job-id="${item.id}" data-applied="${applied ? "1" : "0"}">${applied ? "查看申请" : "立刻投递"}</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join("") || `<div class="job-card">没有符合条件的岗位，换个筛选条件试试。</div>`;
-
-  document.querySelectorAll(".favorite-btn").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const favorited = await toggleFavoriteJob(session.profileId, button.dataset.jobId);
-      setFavoriteButtonState(button, favorited, "已收藏", "收藏岗位");
-    });
-  });
-  document.querySelectorAll(".detail-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      location.href = `/job-detail.html?id=${button.dataset.jobId}`;
-    });
-  });
-  document.querySelectorAll(".apply-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      location.href = `/applications.html?jobId=${button.dataset.jobId}`;
-    });
-  });
-  document.getElementById("search-job-btn").addEventListener("click", () => {
-    const params = new URLSearchParams({
-      keyword: document.getElementById("job-keyword").value || "",
-      company: document.getElementById("job-company").value || "",
-      city: document.getElementById("job-city").value || "",
-      industry: document.getElementById("job-industry").value || ""
-    });
-    location.href = `/jobs.html?${params.toString()}`;
-  });
+    </article>
+  `;
 }
 
 function renderAlumniJobs(jobs, alumniProfile) {
-  renderAppLayout("jobs", "我的岗位", "发布岗位并查看每个岗位的审核状态、联系方式和投递情况。", `
-    <section class="panel">
-      <div class="page-action-bar">
-        <div class="page-action-note">岗位发布与编辑统一走弹窗；岗位默认归属当前校友资料中的企业，不再手动填写企业编号。</div>
-        <div class="action-group">
-          <button class="btn" id="create-job-btn">发布新岗位</button>
+  const approvedCount = jobs.filter((item) => Number(item.auditStatus) === 1).length;
+  const pendingCount = jobs.filter((item) => Number(item.auditStatus) === 0).length;
+  renderAppLayout("jobs", "岗位管理", "", `
+    <section class="job-search-hero reveal">
+      <div class="hero-panel">
+        <span class="hero-kicker">岗位维护</span>
+        <h2>集中管理你的校友内推岗位</h2>
+        <p>支持发布、编辑和删除岗位，审核状态会同步展示。</p>
+        <div class="hero-stat-row">
+          <div class="hero-stat">
+            <span>岗位总数</span>
+            <strong>${jobs.length}</strong>
+          </div>
+          <div class="hero-stat">
+            <span>已通过</span>
+            <strong>${approvedCount}</strong>
+          </div>
+          <div class="hero-stat">
+            <span>待审核</span>
+            <strong>${pendingCount}</strong>
+          </div>
         </div>
+      </div>
+      <div class="hero-panel">
+        <div class="panel-header">
+          <div>
+            <h3>当前绑定</h3>
+            <p>${escapeHtml(alumniProfile.companyName || "未绑定企业")} / ${escapeHtml(alumniProfile.city || "-")}</p>
+          </div>
+          <button class="btn" id="create-job-btn">发布岗位</button>
+        </div>
+        <div class="compact-list">
+          ${jobs.slice(0, 3).map(renderAlumniJobCard).join("") || `<div class="empty-state">暂无岗位，先发布一个岗位。</div>`}
+        </div>
+      </div>
+    </section>
+    <section class="panel reveal reveal-delay-1">
+      <div class="panel-header">
+        <div>
+          <h2>全部岗位</h2>
+          <p>维护岗位信息并跟踪审核状态。</p>
+        </div>
+        <span class="meta-tag">${jobs.length} 个岗位</span>
       </div>
       <div class="compact-list" id="alumni-job-list"></div>
     </section>
-  `);
+  `, { hideDefaultHero: true });
 
-  const listNode = document.getElementById("alumni-job-list");
-  listNode.innerHTML = jobs.map((item) => {
-    const badge = jobAuditBadge(item.auditStatus);
-    return `
-      <div class="compact-item">
-        <div class="split-header">
-          <div>
-            <strong>${item.jobTitle}</strong>
-            <div class="job-card-company">${item.companyName || "-"} / ${item.city || "-"}</div>
-          </div>
-          <span class="status-badge ${badge.cls}">${badge.text}</span>
-        </div>
-        <div class="meta-row">
-          <span class="meta-tag">${item.salaryRange || "-"}</span>
-          <span class="meta-tag">${item.industry || "-"}</span>
-          <span class="meta-tag">${item.educationRequirement || "-"}</span>
-          <span class="meta-tag">联系方式 ${item.contactType || "站内消息"}</span>
-          <span class="meta-tag">名额 ${item.referralQuota || 0}</span>
-        </div>
-        <p>${item.jobDesc || "暂无岗位说明"}</p>
-        <div class="action-group top-gap">
-          <button class="btn ghost-btn audit-detail-btn" data-id="${item.id}">审核详情</button>
-          <button class="btn ghost-btn edit-job-btn" data-id="${item.id}">编辑岗位</button>
-          <button class="btn ghost-btn delete-job-btn" data-id="${item.id}">删除岗位</button>
-        </div>
-      </div>
-    `;
-  }).join("") || `<div class="compact-item">当前还没有发布岗位，点击右上角按钮添加第一条岗位。</div>`;
+  document.getElementById("alumni-job-list").innerHTML = jobs.map(renderAlumniJobCard).join("")
+    || `<div class="empty-state">暂无岗位。</div>`;
 
-  document.getElementById("create-job-btn").addEventListener("click", () => {
+  document.getElementById("create-job-btn")?.addEventListener("click", () => {
     openJobEditor({
-      title: "发布岗位",
-      subtitle: "岗位会自动绑定到当前校友所属企业，提交后进入待审核状态。",
       alumniProfile,
-      onSubmit: async (payload) => {
-        await apiRequest("/referral/job-info/create", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        location.reload();
-      }
-    });
-  });
-
-  document.querySelectorAll(".audit-detail-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const current = jobs.find((item) => Number(item.id) === Number(button.dataset.id));
-      if (current) {
-        openJobAuditDetail(current);
-      }
+      onSubmit: (payload) => apiRequest("/referral/job-info/create", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
     });
   });
 
   document.querySelectorAll(".edit-job-btn").forEach((button) => {
     button.addEventListener("click", () => {
-      const current = jobs.find((item) => Number(item.id) === Number(button.dataset.id));
-      if (!current) {
+      const job = jobs.find((item) => Number(item.id) === Number(button.dataset.id));
+      if (!job) {
         return;
       }
       openJobEditor({
-        title: "编辑岗位",
-        subtitle: "编辑后会重新进入待审核状态，企业归属仍以当前校友资料为准。",
         alumniProfile,
-        initial: current,
-        onSubmit: async (payload) => {
-          await apiRequest("/referral/job-info/update", {
-            method: "PUT",
-            body: JSON.stringify(payload)
-          });
-          location.reload();
-        }
+        job,
+        onSubmit: (payload) => apiRequest("/referral/job-info/update", {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        })
       });
     });
   });
@@ -433,26 +530,19 @@ function renderAlumniJobs(jobs, alumniProfile) {
   document.querySelectorAll(".delete-job-btn").forEach((button) => {
     button.addEventListener("click", () => {
       openPageModal({
-        title: "确认删除岗位",
-        subtitle: "删除后无法恢复，请确认当前岗位不再用于演示或后续处理。",
+        title: "删除岗位",
+        subtitle: "",
         body: `
-          <div class="compact-item">
-            <strong>删除确认</strong>
-            <p>仅允许删除自己发布的岗位。删除后，该岗位下的演示链路也会受到影响。</p>
-          </div>
+          <div class="compact-item">确认删除这个岗位吗？</div>
           <div class="page-action-bar top-gap">
-            <div class="page-action-note">建议仅删除误建岗位；用于答辩展示的岗位请保留。</div>
-            <div class="action-group">
-              <button type="button" class="btn ghost-btn" id="cancel-delete-job">取消</button>
-              <button type="button" class="btn danger-btn" id="confirm-delete-job">确认删除</button>
-            </div>
+            <button class="btn ghost-btn" id="cancel-delete-job">取消</button>
+            <button class="btn danger-btn" id="confirm-delete-job">删除</button>
           </div>
         `,
         onReady(body) {
-          body.querySelector("#cancel-delete-job").addEventListener("click", closePageModal);
-          body.querySelector("#confirm-delete-job").addEventListener("click", async () => {
+          body.querySelector("#cancel-delete-job")?.addEventListener("click", closePageModal);
+          body.querySelector("#confirm-delete-job")?.addEventListener("click", async () => {
             await apiRequest(`/referral/job-info/delete?id=${button.dataset.id}`, { method: "DELETE" });
-            closePageModal();
             location.reload();
           });
         }
@@ -461,69 +551,268 @@ function renderAlumniJobs(jobs, alumniProfile) {
   });
 }
 
-function renderAdminJobs(jobs) {
-  const waitingJobs = (jobs || []).filter((item) => Number(item.auditStatus) === 0);
-  renderAppLayout("jobs", "岗位审核", "查看岗位详情后执行通过或驳回，保证审核动作和审核说明在同一入口完成。", `
-    <section class="panel">
-      <div class="cards">
-        <div class="card"><div class="card-label">全部岗位</div><div class="card-value">${jobs.length}</div></div>
-        <div class="card"><div class="card-label">待审核</div><div class="card-value">${waitingJobs.length}</div></div>
-        <div class="card"><div class="card-label">已通过</div><div class="card-value">${jobs.filter((item) => Number(item.auditStatus) === 1).length}</div></div>
-        <div class="card"><div class="card-label">已驳回</div><div class="card-value">${jobs.filter((item) => Number(item.auditStatus) === 2).length}</div></div>
-      </div>
-    </section>
-    <section class="panel top-gap">
-      <div class="panel-header"><div><h2>岗位审核列表</h2><p>先看详情再做审核，避免直接在表格上盲点通过或驳回。</p></div></div>
-      <div class="compact-list" id="admin-job-list"></div>
-    </section>
-  `);
+function renderStudentJobOverview(rankedJobs, favoriteIds, appliedJobIds) {
+  const averageScore = rankedJobs.length
+    ? Math.round(rankedJobs.reduce((sum, item) => sum + asNumber(item.matchScore), 0) / rankedJobs.length)
+    : 0;
 
-  const listNode = document.getElementById("admin-job-list");
-  listNode.innerHTML = jobs.map((item) => {
-    const badge = jobAuditBadge(item.auditStatus);
-    return `
-      <div class="compact-item">
-        <div class="split-header">
-          <div>
-            <strong>${item.jobTitle || "-"}</strong>
-            <div class="job-card-company">${item.companyName || "-"} / ${item.city || "-"}</div>
-          </div>
-          <span class="status-badge ${badge.cls}">${badge.text}</span>
-        </div>
-        <div class="meta-row">
-          <span class="meta-tag">${item.industry || "-"}</span>
-          <span class="meta-tag">${item.educationRequirement || "-"}</span>
-          <span class="meta-tag">联系方式 ${item.contactType || "站内消息"}</span>
-          <span class="meta-tag">发布时间 ${formatDateTime(item.publishTime)}</span>
-        </div>
-        <div class="action-group top-gap">
-          <button class="btn audit-action-btn" data-id="${item.id}">查看审核详情</button>
-        </div>
+  return `
+    <div class="job-market-overview-grid">
+      <div class="job-market-overview-card">
+        ${buildJobsMetricIcon("results")}
+        <span>匹配结果</span>
+        <strong>${rankedJobs.length}</strong>
+        <p>当前筛选条件下可浏览的岗位数</p>
       </div>
-    `;
-  }).join("") || `<div class="compact-item">当前没有待展示的岗位。</div>`;
-
-  listNode.querySelectorAll(".audit-action-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const current = jobs.find((item) => Number(item.id) === Number(button.dataset.id));
-      if (!current) {
-        return;
-      }
-      openJobAuditDetail(current, {
-        allowAudit: true,
-        onAudit: async (auditStatus) => {
-          await apiRequest(`/referral/job-info/audit?id=${current.id}&auditStatus=${auditStatus}`, {
-            method: "POST"
-          });
-          closePageModal();
-          location.reload();
-        }
-      });
-    });
-  });
+      <div class="job-market-overview-card">
+        ${buildJobsMetricIcon("applied")}
+        <span>已申请</span>
+        <strong>${appliedJobIds.size}</strong>
+        <p>正在推进中的机会建议优先跟进</p>
+      </div>
+      <div class="job-market-overview-card">
+        ${buildJobsMetricIcon("score")}
+        <span>平均匹配</span>
+        <strong>${averageScore}%</strong>
+        <p>收藏中的 ${favoriteIds.length} 个岗位可继续回看</p>
+      </div>
+    </div>
+  `;
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+function renderStudentJobsV2(session, jobs, favoriteIds, applications) {
+  const filters = getJobFilters();
+  const filteredJobs = filterStudentJobs(jobs, filters);
+  const rankedJobs = filteredJobs.slice().sort((left, right) => asNumber(right.matchScore) - asNumber(left.matchScore));
+  const companies = uniqueValues(jobs, (item) => item.companyName);
+  const cities = uniqueValues(jobs, (item) => item.city);
+  const industries = uniqueValues(jobs, (item) => item.industry);
+  const appliedJobIds = new Set(
+    (applications || [])
+      .filter((item) => Number(item.applyStatus) !== 5)
+      .map((item) => Number(item.jobId))
+  );
+  const topJobs = rankedJobs.slice(0, 3);
+  const highlightedJob = topJobs[0];
+
+  renderAppLayout("jobs", "职位广场", "", `
+    <section class="job-search-hero reveal">
+      <div class="hero-panel hero-panel-compact">
+        <span class="hero-kicker">岗位检索</span>
+        <h2>把筛选、匹配和投递节奏收进同一张岗位工作台</h2>
+        <p>围绕关键词、企业、城市和行业收窄结果，列表区保留收藏、详情与投递动作，不改变你原来的操作链路。</p>
+        <div class="search-bar job-search-bar">
+          <input id="job-keyword" value="${escapeHtml(filters.keyword)}" placeholder="搜索岗位、企业或技能关键词">
+          <select id="job-company">${renderSelectOptions(companies, filters.company, "企业不限")}</select>
+          <select id="job-city">${renderSelectOptions(cities, filters.city, "城市不限")}</select>
+          <select id="job-industry">${renderSelectOptions(industries, filters.industry, "行业不限")}</select>
+          <button class="btn" id="search-job-btn">开始筛选</button>
+        </div>
+        ${renderStudentJobOverview(rankedJobs, favoriteIds, appliedJobIds)}
+      </div>
+      <div class="hero-panel hero-panel-compact">
+        <div class="panel-header">
+          <div>
+            <h3>推荐路径</h3>
+            <p>先看高匹配岗位，再继续回到收藏、申请和消息，把推进动作接在一起。</p>
+          </div>
+        </div>
+        <div class="compact-list">
+          ${highlightedJob ? `
+            <article class="compact-item compact-link-card">
+              <strong>${escapeHtml(highlightedJob.jobTitle || "-")}</strong>
+              <p>${escapeHtml(highlightedJob.companyName || "-")} / ${escapeHtml(highlightedJob.city || "-")} / 匹配 ${asNumber(highlightedJob.matchScore)}%</p>
+              <div class="action-group top-gap">
+                <a class="btn ghost-btn" href="/job-detail.html?id=${highlightedJob.id}">查看详情</a>
+                <a class="btn" href="/applications.html?jobId=${highlightedJob.id}">${appliedJobIds.has(Number(highlightedJob.id)) ? "查看申请" : "立即投递"}</a>
+              </div>
+            </article>
+          ` : '<div class="empty-state">当前筛选条件下暂无推荐岗位。</div>'}
+          <a class="compact-item compact-link-card" href="/favorites.html">
+            <strong>进入岗位收藏</strong>
+            <p>集中整理高意向岗位，准备下一轮比较和投递。</p>
+          </a>
+          <a class="compact-item compact-link-card" href="/applications.html">
+            <strong>查看申请记录</strong>
+            <p>继续跟进已投递岗位的处理阶段和最新反馈。</p>
+          </a>
+          <a class="compact-item compact-link-card" href="/consults.html">
+            <strong>前往消息中心</strong>
+            <p>围绕已投递岗位继续和校友沟通，减少链路跳转。</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="jobs-market-layout reveal reveal-delay-1">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>岗位列表</h2>
+            <p>按匹配度优先排列，继续支持收藏、查看详情和直接投递。</p>
+          </div>
+          <span class="meta-tag">${rankedJobs.length} 个岗位</span>
+        </div>
+        <div id="student-job-list" class="job-card-list market-grid"></div>
+      </section>
+
+      <aside class="jobs-market-side-stack">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>高匹配速览</h2>
+              <p>优先查看最值得立即推进的岗位。</p>
+            </div>
+          </div>
+          <div class="compact-list jobs-compact-stack">
+            ${buildStudentSpotlightCards(topJobs)}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>节奏提醒</h2>
+              <p>把收藏、投递和沟通节奏压缩在右侧辅助区。</p>
+            </div>
+          </div>
+          <div class="compact-list">
+            <div class="compact-item">
+              <strong>${favoriteIds.length} 个收藏岗位待比较</strong>
+              <p>收藏列表适合整理高意向岗位，再决定下一步投递顺序。</p>
+            </div>
+            <div class="compact-item">
+              <strong>${appliedJobIds.size} 个岗位已在处理中</strong>
+              <p>如果已经投递，优先去申请记录和消息中心查看后续反馈。</p>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  `, { hideDefaultHero: true });
+
+  document.getElementById("student-job-list").innerHTML = rankedJobs.map((job) => (
+    buildStudentJobCard(job, favoriteIds, appliedJobIds)
+  )).join("") || '<div class="empty-state">暂无符合当前筛选条件的岗位，试试放宽关键词或城市条件。</div>';
+
+  document.querySelectorAll(".favorite-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const favorited = await toggleFavoriteJob(session.profileId, button.dataset.jobId);
+        setFavoriteButtonState(button, favorited);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.getElementById("search-job-btn")?.addEventListener("click", buildJobFilterQuery);
+}
+
+function renderStudentJobsV3(session, jobs, favoriteIds, applications) {
+  const filters = getJobFilters();
+  const filteredJobs = filterStudentJobs(jobs, filters);
+  const rankedJobs = filteredJobs.slice().sort((left, right) => asNumber(right.matchScore) - asNumber(left.matchScore));
+  const companies = uniqueValues(jobs, (item) => item.companyName);
+  const cities = uniqueValues(jobs, (item) => item.city);
+  const industries = uniqueValues(jobs, (item) => item.industry);
+  const appliedJobIds = new Set(
+    (applications || [])
+      .filter((item) => Number(item.applyStatus) !== 5)
+      .map((item) => Number(item.jobId))
+  );
+  const topJobs = rankedJobs.slice(0, 3);
+
+  renderAppLayout("jobs", "职位广场", "", `
+    ${renderWorkspaceEditorialHeader(session, { title: "职位广场", subtitle: "岗位浏览与投递" })}
+    <section class="job-search-hero reveal">
+      <div class="hero-panel hero-panel-compact">
+        <span class="hero-kicker">岗位检索</span>
+        <h2>快速找到适合你的校友内推岗位</h2>
+        <p>按关键词、企业、城市和行业筛选，结果按匹配度优先展示。</p>
+        <div class="search-bar job-search-bar">
+          ${renderJobKeywordField(filters.keyword, "搜索岗位")}
+          <select id="job-company">${renderSelectOptions(companies, filters.company, "企业不限")}</select>
+          <select id="job-city">${renderSelectOptions(cities, filters.city, "城市不限")}</select>
+          <select id="job-industry">${renderSelectOptions(industries, filters.industry, "行业不限")}</select>
+          <button class="btn" id="search-job-btn">开始筛选</button>
+        </div>
+        ${renderStudentJobOverview(rankedJobs, favoriteIds, appliedJobIds)}
+        <div class="jobs-hot-chip-row">${renderJobsHotFilters(rankedJobs)}</div>
+      </div>
+      <div class="hero-panel hero-panel-compact">
+        <div class="panel-header">
+          <div>
+            <h3>优先推荐</h3>
+            <p>匹配度最高的岗位会优先展示在这里。</p>
+          </div>
+        </div>
+        <div class="jobs-priority-list">${renderStudentPriorityCards(topJobs)}</div>
+      </div>
+    </section>
+
+    <section class="panel reveal reveal-delay-1">
+      <div class="panel-header">
+        <div>
+          <h2>岗位列表</h2>
+          <p>支持继续细览收藏、查看详情和发起申请。</p>
+        </div>
+        <span class="meta-tag">${rankedJobs.length} 个岗位</span>
+      </div>
+      <div id="student-job-list-v3" class="job-card-list market-grid"></div>
+    </section>
+
+    <section class="jobs-bottom-grid reveal reveal-delay-2">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>筛选偏好</h2>
+            <p>根据你的筛选条件，归纳当前页的重点偏好。</p>
+          </div>
+        </div>
+        ${renderJobsPreferenceSummary(filters, rankedJobs)}
+      </section>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>投递小贴士</h2>
+            <p>围绕匹配度、资料完整度和沟通节奏继续推进。</p>
+          </div>
+        </div>
+        ${renderJobsTipsPanel(appliedJobIds, favoriteIds)}
+      </section>
+    </section>
+  `, { hideDefaultHero: true });
+
+  document.getElementById("student-job-list-v3").innerHTML = rankedJobs.map((job) => (
+    buildStudentJobCard(job, favoriteIds, appliedJobIds)
+  )).join("") || '<div class="empty-state">暂无符合当前筛选条件的岗位，试试放宽关键词或城市条件。</div>';
+
+  document.querySelectorAll(".favorite-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      try {
+        const favorited = await toggleFavoriteJob(session.profileId, button.dataset.jobId);
+        setFavoriteButtonState(button, favorited);
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  document.getElementById("search-job-btn")?.addEventListener("click", buildJobFilterQuery);
+}
+
+function renderUnsupportedRole() {
+  renderAppLayout("jobs", "职位广场", "", `
+    <section class="panel">
+      <div class="empty-state">请使用学生端或校友端访问该页面。</div>
+    </section>
+  `);
+}
+
+async function bootJobsPage() {
   const session = ensureLogin();
   if (session.role === "ALUMNI") {
     const [jobs, alumniProfile] = await Promise.all([
@@ -533,15 +822,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderAlumniJobs(jobs, alumniProfile);
     return;
   }
-  if (session.role === "ADMIN") {
-    renderAdminJobs(await loadAlumniJobs());
+
+  if (session.role !== "STUDENT") {
+    renderUnsupportedRole();
     return;
   }
 
   const [jobs, applications] = await Promise.all([
     loadStudentJobs(),
-    loadStudentApplications()
+    loadApplications()
   ]);
   await fetchFavoriteJobIds(session.profileId);
-  renderStudentJobs(session, jobs, getFavoriteJobIds(session.profileId), applications);
+  renderStudentJobsV3(session, jobs, getFavoriteJobIds(session.profileId), applications);
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    if (typeof globalThis.runPageTask === "function") {
+      await globalThis.runPageTask({ pageKey: "jobs", title: "职位广场", subtitle: "" }, bootJobsPage);
+      return;
+    }
+    await bootJobsPage();
+  } catch (error) {
+    console.error(error);
+  }
 });

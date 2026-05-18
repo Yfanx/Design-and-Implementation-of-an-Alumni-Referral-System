@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260517-unified-ui-1">
   <title>附件查看 - 校友内推平台</title>
-  <link rel="stylesheet" href="/style.css?v=20260427-attachment-viewer-clean">
-  <script src="/common.js?v=20260427-attachment-viewer-clean"></script>
+  <link rel="stylesheet" href="/style.css?v=20260518-unified-ui-19">
+  <script src="/common.js?v=20260518-unified-ui-14"></script>
 </head>
 <body>
   <div id="viewer-root"></div>
@@ -21,6 +22,15 @@
       const fileName = query.get("name") || "";
       const embedMode = query.get("embed") === "1";
 
+      function escapeText(value) {
+        return String(value || "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll("\"", "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
       function decodeBase64ToUint8Array(base64Content) {
         const binary = atob(base64Content);
         const bytes = new Uint8Array(binary.length);
@@ -30,9 +40,35 @@
         return bytes;
       }
 
+      function canPreviewDirect(url) {
+        if (typeof canUseDirectAttachmentSource === "function") {
+          return canUseDirectAttachmentSource(url);
+        }
+        try {
+          const resolved = new URL(url, window.location.origin);
+          const isPreviewable = resolved.pathname.endsWith(".pdf")
+            || /\.(png|jpe?g|gif|webp|svg)$/i.test(resolved.pathname);
+          return resolved.origin === window.location.origin
+            && resolved.pathname.startsWith("/uploads/")
+            && isPreviewable;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function resolveDirectUrl(url) {
+        try {
+          return new URL(url, window.location.origin).href;
+        } catch (error) {
+          return url;
+        }
+      }
+
       function mountShell() {
         const root = document.getElementById("viewer-root");
         if (embedMode) {
+          document.documentElement.classList.add("attachment-viewer-embed-mode");
+          document.body.classList.add("attachment-viewer-embed-mode");
           document.body.style.margin = "0";
           root.innerHTML = `
             <section class="attachment-preview-card attachment-viewer-embed-shell">
@@ -47,7 +83,7 @@
               <div class="attachment-viewer-topbar">
                 <div class="attachment-viewer-title">
                   <div class="section-eyebrow">附件查看</div>
-                  <h1>${fileName || "预览附件"}</h1>
+                  <h1>${escapeText(fileName || "附件预览")}</h1>
                 </div>
                 <div id="status" class="attachment-viewer-status">正在加载附件内容...</div>
               </div>
@@ -58,7 +94,10 @@
       }
 
       function setPanelHtml(html) {
-        document.getElementById("panel").innerHTML = html;
+        const panel = document.getElementById("panel");
+        if (panel) {
+          panel.innerHTML = html;
+        }
       }
 
       function setStatus(text) {
@@ -69,14 +108,22 @@
       }
 
       mountShell();
+      document.title = `${fileName || "附件查看"} - 校友内推平台`;
 
       if (!safeUrl) {
-        setPanelHtml('<div class="attachment-preview-fallback">附件地址无效</div>');
+        setPanelHtml('<div class="attachment-preview-fallback">附件地址无效。</div>');
         setStatus("无法解析附件地址");
         return;
       }
 
       try {
+        if (canPreviewDirect(safeUrl) && typeof isImageUrl === "function" && isImageUrl(safeUrl)) {
+          const directUrl = resolveDirectUrl(safeUrl);
+          setPanelHtml(`<img class="attachment-preview-image" src="${directUrl}" alt="附件预览">`);
+          setStatus("图片加载完成");
+          return;
+        }
+
         const headers = typeof buildAuthHeaders === "function" ? buildAuthHeaders() : {};
         const response = await fetch(`/referral/file/preview-content?url=${encodeURIComponent(safeUrl)}`, {
           method: "GET",
@@ -99,7 +146,7 @@
         blobUrl = URL.createObjectURL(new Blob([bytes], { type: contentType }));
 
         if (contentType.startsWith("image/")) {
-          setPanelHtml(`<img class="attachment-preview-image" src="${blobUrl}" alt="preview">`);
+          setPanelHtml(`<img class="attachment-preview-image" src="${blobUrl}" alt="附件预览">`);
           setStatus("图片加载完成");
           return;
         }
@@ -109,14 +156,14 @@
             <iframe
               class="attachment-preview-frame attachment-viewer-frame attachment-viewer-frame-clean"
               src="${blobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH"
-              title="PDF preview">
+              title="PDF 预览">
             </iframe>
           `);
           setStatus("PDF 已加载");
           return;
         }
 
-        setPanelHtml('<div class="attachment-preview-fallback">该文件类型暂不支持站内预览。</div>');
+        setPanelHtml('<div class="attachment-preview-fallback">该文件类型暂不支持站内预览，请使用新窗口打开。</div>');
         setStatus("当前文件不支持站内预览");
       } catch (error) {
         setPanelHtml('<div class="attachment-preview-fallback">附件加载失败，请稍后重试。</div>');

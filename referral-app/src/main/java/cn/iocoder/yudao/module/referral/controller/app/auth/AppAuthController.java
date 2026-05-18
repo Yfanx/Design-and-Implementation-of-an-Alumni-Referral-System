@@ -26,6 +26,9 @@ public class AppAuthController {
     public static final List<String> ALUMNI_MENUS = List.of(
             "dashboard", "companies", "jobs", "applications", "consults", "profile");
 
+    public static final List<String> ADMIN_MENUS = List.of(
+            "students", "alumni");
+
     private final AuthAccountService authAccountService;
     private final AuthService authService;
 
@@ -40,13 +43,29 @@ public class AppAuthController {
             return error("用户名或密码错误");
         }
         var account = authAccountService.getByUsername(loginReqVO.getUsername());
-        if (!"STUDENT".equals(account.getRole()) && !"ALUMNI".equals(account.getRole())) {
-            return error("前台仅允许学生和校友登录");
+        List<String> menus;
+        String displayName;
+        String landingPage;
+        switch (account.getRole()) {
+            case "STUDENT" -> {
+                menus = STUDENT_MENUS;
+                displayName = "学生-" + account.getUsername();
+                landingPage = "/dashboard.html";
+            }
+            case "ALUMNI" -> {
+                menus = ALUMNI_MENUS;
+                displayName = "校友-" + account.getUsername();
+                landingPage = "/dashboard.html";
+            }
+            case "ADMIN" -> {
+                menus = ADMIN_MENUS;
+                displayName = "管理员-" + account.getUsername();
+                landingPage = "/students.html";
+            }
+            default -> {
+                return error("当前账号角色暂不支持前台登录");
+            }
         }
-        List<String> menus = "STUDENT".equals(account.getRole()) ? STUDENT_MENUS : ALUMNI_MENUS;
-        String displayName = "STUDENT".equals(account.getRole())
-                ? "学生-" + account.getUsername()
-                : "校友-" + account.getUsername();
         return success(new AuthLoginRespVO(
                 "app-token-" + account.getUsername(),
                 account.getUsername(),
@@ -54,7 +73,7 @@ public class AppAuthController {
                 account.getRole(),
                 account.getUserId(),
                 account.getProfileId(),
-                "/dashboard.html",
+                landingPage,
                 menus
         ));
     }

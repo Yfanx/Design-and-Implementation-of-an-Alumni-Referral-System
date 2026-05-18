@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class ReferralApplicationRespVO {
@@ -11,6 +12,8 @@ public class ReferralApplicationRespVO {
     private Long id;
     private Long jobId;
     private String jobTitle;
+    private String companyName;
+    private String city;
     private Long studentId;
     private String studentName;
     private Long alumniId;
@@ -22,4 +25,7 @@ public class ReferralApplicationRespVO {
     private String processRemark;
     private LocalDateTime applyTime;
     private LocalDateTime processTime;
+    private String matchSummary;
+    private List<MatchDimensionRespVO> matchBreakdown;
+    private List<ApplicationProgressStepRespVO> progressSteps;
 }

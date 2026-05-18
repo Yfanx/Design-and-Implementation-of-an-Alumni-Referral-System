@@ -20,6 +20,8 @@ public class AppApiAuthInterceptor implements HandlerInterceptor {
 
     private static final Set<String> COMMON_GET_PATHS = Set.of(
             "/referral/dashboard/overview",
+            "/referral/dashboard/map-distribution",
+            "/referral/dashboard/keyword-cloud",
             "/referral/job-info/get",
             "/referral/job-info/match-list",
             "/referral/company-info/get",
@@ -39,6 +41,12 @@ public class AppApiAuthInterceptor implements HandlerInterceptor {
 
     private static final Set<String> ALUMNI_GET_PATHS = Set.of(
             "/referral/job-info/list",
+            "/referral/alumni-info/list",
+            "/referral/dashboard/alumni-processing-trend"
+    );
+
+    private static final Set<String> ADMIN_GET_PATHS = Set.of(
+            "/referral/student-info/list",
             "/referral/alumni-info/list"
     );
 
@@ -63,6 +71,10 @@ public class AppApiAuthInterceptor implements HandlerInterceptor {
             "/referral/file/upload"
     );
 
+    private static final Set<String> ADMIN_MUTATION_PATHS = Set.of(
+            "/referral/alumni-info/update"
+    );
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String method = request.getMethod();
@@ -79,7 +91,7 @@ public class AppApiAuthInterceptor implements HandlerInterceptor {
         if (!token.startsWith("app-token-")) {
             return writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "前台登录状态无效");
         }
-        if (!"STUDENT".equals(role) && !"ALUMNI".equals(role)) {
+        if (!"STUDENT".equals(role) && !"ALUMNI".equals(role) && !"ADMIN".equals(role)) {
             return writeError(response, HttpServletResponse.SC_FORBIDDEN, "当前角色无权访问前台接口");
         }
 
@@ -93,6 +105,9 @@ public class AppApiAuthInterceptor implements HandlerInterceptor {
             if ("ALUMNI".equals(role) && ALUMNI_GET_PATHS.contains(path)) {
                 return true;
             }
+            if ("ADMIN".equals(role) && ADMIN_GET_PATHS.contains(path)) {
+                return true;
+            }
             return writeError(response, HttpServletResponse.SC_FORBIDDEN, "当前页面无权访问该数据");
         }
 
@@ -100,6 +115,9 @@ public class AppApiAuthInterceptor implements HandlerInterceptor {
             return true;
         }
         if ("ALUMNI".equals(role) && ALUMNI_MUTATION_PATHS.contains(path)) {
+            return true;
+        }
+        if ("ADMIN".equals(role) && ADMIN_MUTATION_PATHS.contains(path)) {
             return true;
         }
         return writeError(response, HttpServletResponse.SC_FORBIDDEN, "当前角色无权执行该操作");

@@ -38,8 +38,8 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement("""
                         INSERT INTO ref_company_info
-                        (company_name, industry, company_size, city, address, company_desc, official_website, status)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        (company_name, industry, company_size, city, address, company_desc, logo_url, official_website, status)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """, Statement.RETURN_GENERATED_KEYS);
                 ps.setString(1, createReqVO.getCompanyName());
                 ps.setString(2, createReqVO.getIndustry());
@@ -47,8 +47,9 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
                 ps.setString(4, createReqVO.getCity());
                 ps.setString(5, createReqVO.getAddress());
                 ps.setString(6, createReqVO.getCompanyDesc());
-                ps.setString(7, createReqVO.getOfficialWebsite());
-                ps.setObject(8, createReqVO.getStatus() == null ? 1 : createReqVO.getStatus());
+                ps.setString(7, createReqVO.getLogoUrl());
+                ps.setString(8, createReqVO.getOfficialWebsite());
+                ps.setObject(9, createReqVO.getStatus() == null ? 1 : createReqVO.getStatus());
                 return ps;
             }, keyHolder);
             return keyHolder.getKey().longValue();
@@ -64,12 +65,13 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
             jdbcTemplate.update("""
                     UPDATE ref_company_info
                     SET company_name = ?, industry = ?, company_size = ?, city = ?, address = ?,
-                        company_desc = ?, official_website = ?, status = ?
+                        company_desc = ?, logo_url = ?, official_website = ?, status = ?
                     WHERE id = ?
                     """,
                     updateReqVO.getCompanyName(), updateReqVO.getIndustry(), updateReqVO.getCompanySize(),
                     updateReqVO.getCity(), updateReqVO.getAddress(), updateReqVO.getCompanyDesc(),
-                    updateReqVO.getOfficialWebsite(), updateReqVO.getStatus() == null ? 1 : updateReqVO.getStatus(),
+                    updateReqVO.getLogoUrl(), updateReqVO.getOfficialWebsite(),
+                    updateReqVO.getStatus() == null ? 1 : updateReqVO.getStatus(),
                     updateReqVO.getId());
             return;
         }
@@ -85,7 +87,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
     public CompanyInfoRespVO getCompanyInfo(Long id) {
         if (storageProperties.isMysqlMode()) {
             List<CompanyInfoRespVO> list = jdbcTemplate.query("""
-                    SELECT id, company_name, industry, company_size, city, address, company_desc, official_website, status, create_time
+                    SELECT id, company_name, industry, company_size, city, address, company_desc, logo_url, official_website, status, create_time
                     FROM ref_company_info WHERE id = ?
                     """, (rs, rowNum) -> {
                 CompanyInfoRespVO target = new CompanyInfoRespVO();
@@ -96,6 +98,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
                 target.setCity(rs.getString("city"));
                 target.setAddress(rs.getString("address"));
                 target.setCompanyDesc(rs.getString("company_desc"));
+                target.setLogoUrl(rs.getString("logo_url"));
                 target.setOfficialWebsite(rs.getString("official_website"));
                 target.setStatus(rs.getInt("status"));
                 if (rs.getTimestamp("create_time") != null) {
@@ -113,7 +116,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
     public PageResult<CompanyInfoRespVO> getCompanyInfoPage(CompanyInfoPageReqVO pageReqVO) {
         if (storageProperties.isMysqlMode()) {
             List<CompanyInfoRespVO> list = jdbcTemplate.query("""
-                    SELECT id, company_name, industry, company_size, city, address, company_desc, official_website, status, create_time
+                    SELECT id, company_name, industry, company_size, city, address, company_desc, logo_url, official_website, status, create_time
                     FROM ref_company_info ORDER BY id DESC
                     """, (rs, rowNum) -> {
                 CompanyInfoRespVO target = new CompanyInfoRespVO();
@@ -124,6 +127,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
                 target.setCity(rs.getString("city"));
                 target.setAddress(rs.getString("address"));
                 target.setCompanyDesc(rs.getString("company_desc"));
+                target.setLogoUrl(rs.getString("logo_url"));
                 target.setOfficialWebsite(rs.getString("official_website"));
                 target.setStatus(rs.getInt("status"));
                 if (rs.getTimestamp("create_time") != null) {
@@ -159,7 +163,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
     public List<CompanyInfoRespVO> listCompanyInfos() {
         if (storageProperties.isMysqlMode()) {
             return jdbcTemplate.query("""
-                    SELECT id, company_name, industry, company_size, city, address, company_desc, official_website, status, create_time
+                    SELECT id, company_name, industry, company_size, city, address, company_desc, logo_url, official_website, status, create_time
                     FROM ref_company_info WHERE status = 1 ORDER BY id DESC
                     """, (rs, rowNum) -> {
                 CompanyInfoRespVO target = new CompanyInfoRespVO();
@@ -170,6 +174,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
                 target.setCity(rs.getString("city"));
                 target.setAddress(rs.getString("address"));
                 target.setCompanyDesc(rs.getString("company_desc"));
+                target.setLogoUrl(rs.getString("logo_url"));
                 target.setOfficialWebsite(rs.getString("official_website"));
                 target.setStatus(rs.getInt("status"));
                 if (rs.getTimestamp("create_time") != null) {
@@ -191,6 +196,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
         target.setCity(source.getCity());
         target.setAddress(source.getAddress());
         target.setCompanyDesc(source.getCompanyDesc());
+        target.setLogoUrl(source.getLogoUrl());
         target.setOfficialWebsite(source.getOfficialWebsite());
         target.setStatus(source.getStatus() == null ? 1 : source.getStatus());
     }
@@ -204,6 +210,7 @@ public class CompanyInfoServiceImpl implements CompanyInfoService {
         target.setCity(source.getCity());
         target.setAddress(source.getAddress());
         target.setCompanyDesc(source.getCompanyDesc());
+        target.setLogoUrl(source.getLogoUrl());
         target.setOfficialWebsite(source.getOfficialWebsite());
         target.setStatus(source.getStatus());
         target.setCreateTime(source.getCreateTime());

@@ -19,6 +19,7 @@ public class CompanyInfoDO extends BaseDO {
     private String city;
     private String address;
     private String companyDesc;
+    private String logoUrl;
     private String officialWebsite;
     private Integer status;
 }

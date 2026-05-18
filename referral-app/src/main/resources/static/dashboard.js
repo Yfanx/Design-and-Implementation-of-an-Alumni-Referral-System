@@ -1,271 +1,679 @@
+async function safeApi(url, fallback) {
+  try {
+    const result = await apiRequest(url);
+    return result.data ?? fallback;
+  } catch (error) {
+    console.warn(`Dashboard request failed: ${url}`, error);
+    return fallback;
+  }
+}
+
 async function fetchStudentDashboardBundle(session) {
-  const [overview, jobs, applications, consults] = await Promise.all([
-    apiRequest("/referral/dashboard/overview"),
-    apiRequest("/referral/job-info/match-list"),
-    apiRequest("/referral/referral-application/list"),
-    apiRequest("/referral/consult-message/list")
+  const [overview, jobsData, applicationData, consultData, mapData, keywordData] = await Promise.all([
+    safeApi("/referral/dashboard/overview", {}),
+    safeApi("/referral/job-info/match-list", { list: [] }),
+    safeApi("/referral/referral-application/list", { list: [] }),
+    safeApi("/referral/consult-message/list", { list: [] }),
+    safeApi("/referral/dashboard/map-distribution", []),
+    safeApi("/referral/dashboard/keyword-cloud", [])
   ]);
+
   return {
-    overview: overview.data || {},
-    jobs: jobs.data?.list || [],
-    applications: (applications.data?.list || []).filter((item) => Number(item.studentId) === Number(session.profileId)),
-    consults: (consults.data?.list || []).filter((item) => Number(item.senderUserId) === Number(session.userId) || Number(item.receiverUserId) === Number(session.userId))
+    overview,
+    jobs: jobsData.list || [],
+    applications: (applicationData.list || []).filter((item) => Number(item.studentId) === Number(session.profileId)),
+    consults: (consultData.list || []).filter((item) =>
+      Number(item.senderUserId) === Number(session.userId) || Number(item.receiverUserId) === Number(session.userId)
+    ),
+    mapDistribution: mapData || [],
+    keywordCloud: keywordData || []
   };
 }
 
 async function fetchAlumniDashboardBundle(session) {
-  const [overview, jobs, applications, consults] = await Promise.all([
-    apiRequest("/referral/dashboard/overview"),
-    apiRequest("/referral/job-info/list"),
-    apiRequest("/referral/referral-application/list"),
-    apiRequest("/referral/consult-message/list")
+  const [overview, jobsData, applicationData, consultData, trendData] = await Promise.all([
+    safeApi("/referral/dashboard/overview", {}),
+    safeApi("/referral/job-info/list", { list: [] }),
+    safeApi("/referral/referral-application/list", { list: [] }),
+    safeApi("/referral/consult-message/list", { list: [] }),
+    safeApi("/referral/dashboard/alumni-processing-trend?days=7", [])
   ]);
+
   return {
-    overview: overview.data || {},
-    jobs: jobs.data?.list || [],
-    applications: applications.data?.list || [],
-    consults: (consults.data?.list || []).filter((item) => Number(item.senderUserId) === Number(session.userId) || Number(item.receiverUserId) === Number(session.userId))
+    overview,
+    jobs: jobsData.list || [],
+    applications: applicationData.list || [],
+    consults: (consultData.list || []).filter((item) =>
+      Number(item.senderUserId) === Number(session.userId) || Number(item.receiverUserId) === Number(session.userId)
+    ),
+    trend: trendData || []
   };
 }
 
-function buildRecommendedJobs(jobs) {
-  const hotCities = ["上海", "杭州", "北京", "深圳"];
-  return (jobs || [])
-    .filter((item) => hotCities.includes(item.city))
-    .sort((left, right) => Number(right.id || 0) - Number(left.id || 0))
-    .slice(0, 3);
+function sortByMatchScore(jobs) {
+  return (jobs || []).slice().sort((left, right) => asNumber(right.matchScore) - asNumber(left.matchScore));
 }
 
-function renderStudentDashboard(session, bundle, favoriteIds) {
-  const myApplications = bundle.applications || [];
-  const myConsults = (bundle.consults || []).slice(0, 5);
-  const interviewReady = myApplications.filter((item) => Number(item.applyStatus) === 2 || Number(item.applyStatus) === 4).length;
-  const recommendedJobs = buildRecommendedJobs(bundle.jobs);
+function applicationStageText(status) {
+  const mapping = {
+    0: "待处理",
+    1: "沟通中",
+    2: "已内推",
+    3: "未通过",
+    4: "已完成",
+    5: "已撤回"
+  };
+  return mapping[Number(status)] || "处理中";
+}
 
-  renderAppLayout("dashboard", "求职首页", "集中查看岗位推荐、投递进度和最近消息。", `
-    <section class="job-search-hero">
-      <div class="hero-panel reveal">
-        <span class="hero-badge">求职动态</span>
-        <h2>今天值得优先查看的校友内推岗位</h2>
-        <p>从推荐岗位直接进入详情、收藏和申请，形成完整的求职操作链路。</p>
-        <div class="search-bar">
-          <input id="student-keyword" placeholder="搜索职位、公司或技能关键词">
-          <select id="student-city">
-            <option value="">城市不限</option>
-            <option value="上海">上海</option>
-            <option value="杭州">杭州</option>
-            <option value="北京">北京</option>
-            <option value="深圳">深圳</option>
-          </select>
-          <select id="student-industry">
-            <option value="">行业不限</option>
-            <option value="互联网">互联网</option>
-            <option value="人工智能">人工智能</option>
-            <option value="金融科技">金融科技</option>
-          </select>
-          <button class="btn" id="go-jobs">去找职位</button>
-        </div>
-        <div class="insight-bar">
-          <span class="insight-pill">真实校友岗位</span>
-          <span class="insight-pill">申请状态可追踪</span>
-          <span class="insight-pill">可直接联系校友</span>
-        </div>
-        <div id="dashboard-summary" class="market-marquee"></div>
-      </div>
-      <div class="panel floating-panel reveal reveal-delay-1">
-        <div class="section-eyebrow">我的进度</div>
-        <div class="panel-header">
-          <div>
-            <h2>我的求职节奏</h2>
-            <p>把收藏、投递、处理进度和消息提醒放在同一个视图里。</p>
-          </div>
-        </div>
-        <div class="cards">
-          <div class="card"><div class="card-label">在招职位</div><div class="card-value">${bundle.jobs.length}</div><div class="card-sub">当前全部可投递岗位</div></div>
-          <div class="card"><div class="card-label">我的申请</div><div class="card-value">${myApplications.length}</div><div class="card-sub">已经提交的内推申请</div></div>
-          <div class="card"><div class="card-label">已处理</div><div class="card-value">${myApplications.filter((item) => Number(item.applyStatus) !== 0).length}</div><div class="card-sub">校友已查看或已推进</div></div>
-          <div class="card"><div class="card-label">消息提醒</div><div class="card-value">${myConsults.length}</div><div class="card-sub">最近相关沟通消息</div></div>
-        </div>
-      </div>
-    </section>
-    <section class="panel reveal reveal-delay-1">
-      <div class="section-eyebrow">推荐岗位</div>
-      <div class="panel-header">
-        <div>
-          <h2>推荐职位</h2>
-          <p>优先展示适合快速浏览和进入详情的岗位卡片。</p>
-        </div>
-      </div>
-      <div id="recommended-job-list" class="job-card-list"></div>
-    </section>
-    <section class="feature-grid reveal reveal-delay-2">
-      <div class="feature-card"><span class="section-eyebrow">功能一</span><strong>职位收藏</strong><p>先保存感兴趣的岗位，再统一比较和投递。</p></div>
-      <div class="feature-card"><span class="section-eyebrow">功能二</span><strong>进度跟踪</strong><p>每条申请都能看到状态变化和处理备注。</p></div>
-      <div class="feature-card"><span class="section-eyebrow">功能三</span><strong>校友沟通</strong><p>围绕具体岗位直接咨询校友，更贴近真实产品使用场景。</p></div>
-    </section>
-    <section class="grid-2 reveal reveal-delay-3">
-      <div class="panel">
-        <div class="panel-header"><div><h2>我的申请</h2><p>最近投递状态变化。</p></div></div>
-        <div class="timeline">
-          ${myApplications.slice(0, 4).map((item) => {
-            const badge = statusBadge(Number(item.applyStatus));
-            return `
-              <div class="timeline-item">
-                <div class="split-header">
-                  <div><strong>${item.jobTitle || "-"}</strong><div class="job-card-company">${item.alumniName || "-"}</div></div>
-                  <span class="status-badge ${badge.cls}">${badge.text}</span>
-                </div>
-                <div class="meta-row"><span class="meta-tag">${item.processRemark || "等待处理"}</span></div>
-              </div>
-            `;
-          }).join("") || `<div class="timeline-item">还没有投递记录，先去职位页看看。</div>`}
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-header"><div><h2>消息提醒</h2><p>最近收到的校友回复。</p></div></div>
-        <div class="compact-list">
-          ${myConsults.map((item) => `
-            <div class="compact-item">
-              <strong>岗位 ${item.jobId || "-"}</strong>
-              <div class="job-card-company">${item.content || "-"}</div>
-            </div>
-          `).join("") || `<div class="compact-item">暂时没有消息。</div>`}
-        </div>
-      </div>
-    </section>
-  `);
+function buildRecentConversations(consults, jobs, applications, session) {
+  const jobMap = new Map((jobs || []).map((item) => [Number(item.id), item]));
+  const applicationMap = new Map((applications || []).map((item) => [Number(item.jobId), item]));
+  const latestByJob = new Map();
 
-  document.getElementById("dashboard-summary").innerHTML = `
-    <div class="mini-stat"><span>在招职位</span><strong>${bundle.jobs.length}</strong></div>
-    <div class="mini-stat"><span>已收藏</span><strong>${favoriteIds.length}</strong></div>
-    <div class="mini-stat"><span>消息提醒</span><strong>${myConsults.length}</strong></div>
-    <div class="mini-stat"><span>推进阶段</span><strong>${interviewReady}</strong></div>
+  (consults || []).forEach((item) => {
+    const jobId = Number(item.jobId);
+    if (!jobId) {
+      return;
+    }
+    const current = latestByJob.get(jobId);
+    if (!current || Number(item.id || 0) > Number(current.id || 0)) {
+      latestByJob.set(jobId, item);
+    }
+  });
+
+  return Array.from(latestByJob.values())
+    .sort((left, right) => Number(right.id || 0) - Number(left.id || 0))
+    .slice(0, 4)
+    .map((item) => {
+      const jobId = Number(item.jobId);
+      const job = jobMap.get(jobId) || {};
+      const application = applicationMap.get(jobId) || {};
+      const outgoing = Number(item.senderUserId) === Number(session.userId);
+      return {
+        jobId,
+        jobTitle: job.jobTitle || application.jobTitle || `岗位 ${jobId}`,
+        companyName: job.companyName || application.companyName || "校友企业",
+        peerName: outgoing
+          ? (item.receiverDisplayName || application.alumniName || "对方")
+          : (item.senderDisplayName || application.studentName || "对方"),
+        content: item.content || "",
+        sendTime: item.sendTime
+      };
+    });
+}
+
+function buildRadarProfile(jobs) {
+  const topJobs = sortByMatchScore(jobs).slice(0, 6);
+  const categories = [
+    { label: "后端研发", keys: ["java", "后端", "服务端", "software", "engineer", "开发工程师"] },
+    { label: "前端体验", keys: ["前端", "web", "react", "vue", "javascript", "客户端"] },
+    { label: "数据智能", keys: ["数据", "算法", "推荐", "python", "ai", "machine learning"] },
+    { label: "产品运营", keys: ["产品", "运营", "增长", "product", "operation"] },
+    { label: "金融商务", keys: ["金融", "财务", "风控", "finance", "business", "strategy"] },
+    { label: "咨询方案", keys: ["咨询", "解决方案", "顾问", "consult", "solution"] }
+  ];
+
+  return categories.map((category) => {
+    const hits = topJobs.filter((job) => {
+      const text = `${job.jobTitle || ""} ${job.jobType || ""} ${job.industry || ""} ${job.skillRequirement || ""}`.toLowerCase();
+      return category.keys.some((keyword) => text.includes(keyword.toLowerCase()));
+    });
+    const average = hits.length
+      ? hits.reduce((sum, item) => sum + asNumber(item.matchScore), 0) / hits.length
+      : 42;
+    return {
+      label: category.label,
+      score: Math.round(Math.max(24, Math.min(96, average)))
+    };
+  });
+}
+
+function buildFallbackProgress(application) {
+  const status = Number(application?.applyStatus ?? 0);
+  const statusIndex = {
+    0: 1,
+    1: 2,
+    2: 3,
+    3: 3,
+    4: 4,
+    5: 4
+  }[status] || 1;
+
+  return [
+    {
+      title: "提交申请",
+      description: application?.applyTime ? `已于 ${formatDateTime(application.applyTime)} 提交` : "申请信息已进入系统",
+      state: "done"
+    },
+    {
+      title: "校友查看",
+      description: statusIndex >= 2 ? "校友已查看资料，正在安排下一步" : "等待校友查看你的申请",
+      state: statusIndex >= 2 ? "done" : "active"
+    },
+    {
+      title: status === 3 ? "申请反馈" : "内推进展",
+      description: status === 3
+        ? (application?.processRemark || "本次申请暂未通过，可继续投递其他岗位")
+        : (statusIndex >= 3 ? (application?.processRemark || "校友已推进当前岗位申请") : "等待校友处理结果"),
+      state: status === 3 ? "done" : (statusIndex >= 3 ? "active" : "pending")
+    },
+    {
+      title: status === 4 ? "流程完成" : "结果确认",
+      description: status === 4
+        ? (application?.processRemark || "当前岗位流程已完成")
+        : (status === 5 ? "申请已撤回" : "持续关注后续面试或 offer 结果"),
+      state: status >= 4 ? "done" : "pending"
+    }
+  ];
+}
+
+function renderShowcaseRadarChart(targetId, profile) {
+  const chart = getChartInstance(targetId);
+  if (!chart) {
+    return;
+  }
+
+  chart.setOption({
+    animationDuration: 500,
+    radar: {
+      center: ["50%", "54%"],
+      radius: "73%",
+      splitNumber: 5,
+      indicator: profile.map((item) => ({ name: item.label, max: 100 })),
+      axisName: {
+        color: "#3c3b36",
+        fontSize: 12
+      },
+      splitLine: {
+        lineStyle: {
+          color: ["rgba(59, 59, 54, 0.12)"]
+        }
+      },
+      splitArea: {
+        areaStyle: {
+          color: ["rgba(255,255,255,0.72)", "rgba(255,248,233,0.42)"]
+        }
+      },
+      axisLine: {
+        lineStyle: {
+          color: "rgba(59, 59, 54, 0.12)"
+        }
+      }
+    },
+    series: [
+      {
+        type: "radar",
+        data: [
+          {
+            value: profile.map((item) => item.score),
+            areaStyle: {
+              color: "rgba(20, 34, 62, 0.10)"
+            },
+            lineStyle: {
+              color: "#17233b",
+              width: 2
+            },
+            itemStyle: {
+              color: "#17233b"
+            },
+            symbolSize: 6
+          }
+        ]
+      }
+    ]
+  });
+}
+
+function renderShowcaseStatus(application) {
+  const steps = application?.progressSteps?.length ? application.progressSteps : buildFallbackProgress(application);
+
+  return `
+    <div class="showcase-status-line">
+      ${steps.map((step, index) => `
+        <div class="showcase-status-step is-${step.state || "pending"}">
+          <div class="showcase-status-dot">${index + 1}</div>
+          <strong>${escapeHtml(step.title || "")}</strong>
+          <span>${escapeHtml(step.description || step.time || "")}</span>
+        </div>
+      `).join("")}
+    </div>
   `;
+}
 
-  const recommendedNode = document.getElementById("recommended-job-list");
-  recommendedNode.innerHTML = recommendedJobs.map((job) => {
+function renderShowcaseTopJobs(session, jobs) {
+  return jobs.map((job) => {
     const favorited = isFavoriteJob(session.profileId, job.id);
+    const tags = [
+      job.industry || "行业方向",
+      job.city || "城市",
+      job.skillRequirement || "技能要求"
+    ].filter(Boolean).slice(0, 3);
+
     return `
-      <article class="job-card">
-        <div class="job-card-top">
-          <div>
-            <span class="job-card-company">${job.companyName || "校友企业"}</span>
-            <h3>${job.jobTitle || "-"}</h3>
-          </div>
-          <span class="match-badge">${job.city || "城市待定"}</span>
+      <article class="showcase-job-card">
+        <div class="showcase-job-title">
+          <strong>${escapeHtml(job.jobTitle || "-")}</strong>
+          <span>${asNumber(job.matchScore)}% 匹配</span>
         </div>
-        <p class="job-card-desc">${job.jobDesc || "该岗位支持校友内推，适合学生端快速浏览和申请。"}</p>
-        <div class="meta-row">
-          <span class="meta-tag">${job.industry || "行业不限"}</span>
-          <span class="meta-tag">${job.educationRequirement || "学历不限"}</span>
-          <span class="meta-tag">${job.salaryRange || "薪资面议"}</span>
+        <div class="showcase-job-company">${escapeHtml(job.companyName || "-")}</div>
+        <div class="showcase-job-tags">
+          ${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}
         </div>
-        <div class="action-group top-gap">
-          <a class="btn" href="/job-detail.html?id=${job.id}">查看详情</a>
-          <button class="btn ghost-btn favorite-btn ${favorited ? "active-favorite" : ""}" data-job-id="${job.id}">
-            ${favorited ? "已收藏" : "收藏职位"}
+        <div class="showcase-job-actions">
+          <a class="showcase-job-link" href="/job-detail.html?id=${job.id}">查看详情</a>
+          <button class="showcase-mini-fav ${favorited ? "is-active" : ""}" data-job-id="${job.id}" type="button">
+            ${favorited ? "已收藏" : "收藏"}
           </button>
         </div>
       </article>
     `;
-  }).join("") || `<div class="empty-state">当前没有可展示的推荐职位。</div>`;
+  }).join("") || '<div class="empty-state">暂未生成匹配岗位，请稍后刷新查看。</div>';
+}
 
-  document.querySelectorAll(".favorite-btn").forEach((button) => {
+function renderShowcaseCityStats(items) {
+  const topCities = (items || [])
+    .slice()
+    .sort((left, right) => {
+      const leftScore = asNumber(left.jobCount) + asNumber(left.applicationCount) + asNumber(left.companyCount);
+      const rightScore = asNumber(right.jobCount) + asNumber(right.applicationCount) + asNumber(right.companyCount);
+      return rightScore - leftScore;
+    })
+    .slice(0, 3);
+
+  return topCities.map((item) => `
+    <div class="showcase-city-item">
+      <strong>${escapeHtml(item.city || "-")}</strong>
+      <span>开放岗位 ${asNumber(item.jobCount)}</span>
+      <span>关联企业 ${asNumber(item.companyCount)}</span>
+      <span>申请记录 ${asNumber(item.applicationCount)}</span>
+    </div>
+  `).join("") || '<div class="empty-state">暂无城市分布数据。</div>';
+}
+
+function bindShowcaseSearch() {
+  document.getElementById("showcase-search-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const keyword = (document.getElementById("showcase-search-input")?.value || "").trim();
+    location.href = keyword ? `/jobs.html?keyword=${encodeURIComponent(keyword)}` : "/jobs.html";
+  });
+}
+
+function bindShowcaseFavoriteButtons(session) {
+  document.querySelectorAll(".showcase-mini-fav").forEach((button) => {
     button.addEventListener("click", async () => {
       button.disabled = true;
       try {
         const favorited = await toggleFavoriteJob(session.profileId, button.dataset.jobId);
-        setFavoriteButtonState(button, favorited, "已收藏", "收藏职位");
+        button.classList.toggle("is-active", favorited);
+        button.textContent = favorited ? "已收藏" : "收藏";
       } finally {
         button.disabled = false;
       }
     });
   });
+}
 
-  document.getElementById("go-jobs").addEventListener("click", () => {
-    const keyword = encodeURIComponent(document.getElementById("student-keyword").value || "");
-    const city = encodeURIComponent(document.getElementById("student-city").value || "");
-    const industry = encodeURIComponent(document.getElementById("student-industry").value || "");
-    location.href = `/jobs.html?keyword=${keyword}&city=${city}&industry=${industry}`;
-  });
+function renderStudentShowcaseLayout(session, content) {
+  document.body.classList.add("dashboard-showcase-page");
+  document.title = "求职首页 - 校友内推平台";
+  document.getElementById("app").innerHTML = `
+    <div class="showcase-shell">
+      <header class="showcase-topbar">
+        <div class="showcase-topbar-inner">
+          <div class="showcase-brand">校友内推平台</div>
+          <nav class="showcase-nav">
+            <a class="active" href="/dashboard.html">求职首页</a>
+            <a href="/jobs.html">职位广场</a>
+            <a href="/favorites.html">岗位收藏</a>
+            <a href="/companies.html">企业总览</a>
+            <a href="/applications.html">我的申请</a>
+            <a href="/consults.html">消息中心</a>
+            <a href="/profile.html">我的资料</a>
+          </nav>
+          <div class="showcase-top-actions">
+            <span class="showcase-user">${escapeHtml(session.displayName || "学生")}</span>
+            <button class="btn" type="button" onclick="logout()">退出登录</button>
+          </div>
+        </div>
+      </header>
+      <main class="showcase-main">
+        ${content}
+        <footer class="showcase-footer">高校校友内推信息管理与对接系统 · 学生求职工作台。</footer>
+      </main>
+    </div>
+  `;
+}
+
+function renderStudentDashboard(session, bundle) {
+  const jobs = sortByMatchScore(bundle.jobs);
+  const topJobs = jobs.slice(0, 4);
+  const radarProfile = buildRadarProfile(jobs);
+  const latestApplication = (bundle.applications || []).slice().sort((left, right) =>
+    String(right.applyTime || "").localeCompare(String(left.applyTime || ""))
+  )[0];
+  const recentMessages = buildRecentConversations(bundle.consults, bundle.jobs, bundle.applications, session);
+
+  renderStudentShowcaseLayout(session, `
+    <section class="showcase-page-grid">
+      <div class="showcase-column">
+        <section class="showcase-hero-card">
+          <div class="showcase-hero-copy">
+            <span class="section-eyebrow">学生工作台</span>
+            <h1 class="showcase-title-nowrap">学生求职工作台</h1>
+            <p>集中查看匹配岗位、城市分布、申请进度和最近沟通，把校友内推主链路收在一个首页里。</p>
+            <form id="showcase-search-form" class="showcase-search-bar">
+              <input id="showcase-search-input" placeholder="搜索岗位、企业、技能关键词">
+              <button type="submit">搜索岗位</button>
+            </form>
+          </div>
+          <div id="showcase-radar-chart" class="showcase-radar"></div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>高匹配岗位</h2>
+          </div>
+          <div class="showcase-job-grid">
+            ${renderShowcaseTopJobs(session, topJobs)}
+          </div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>最近沟通</h2>
+          </div>
+          <div class="showcase-message-list">
+            ${recentMessages.map((item) => `
+              <a class="showcase-message-item" href="/consults.html?jobId=${item.jobId}">
+                <strong>${escapeHtml(item.jobTitle)}</strong>
+                <span>${escapeHtml(item.companyName)} / ${escapeHtml(item.peerName)}</span>
+                <p>${escapeHtml(item.content || "点击继续查看沟通内容。")}</p>
+              </a>
+            `).join("") || '<div class="empty-state">暂无沟通消息，投递岗位后即可与校友继续交流。</div>'}
+          </div>
+        </section>
+      </div>
+
+      <div class="showcase-column">
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>城市岗位分布</h2>
+          </div>
+          <div class="showcase-map-layout">
+            <div id="showcase-map-chart-main" class="showcase-map-chart"></div>
+            <div class="showcase-city-list">
+              ${renderShowcaseCityStats(bundle.mapDistribution || [])}
+            </div>
+          </div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>岗位关键词</h2>
+          </div>
+          <div id="showcase-keyword-cloud" class="showcase-keyword-cloud"></div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>申请进度</h2>
+          </div>
+          ${renderShowcaseStatus(latestApplication)}
+        </section>
+      </div>
+    </section>
+  `);
+
+  bindShowcaseSearch();
+  bindShowcaseFavoriteButtons(session);
+  renderShowcaseRadarChart("showcase-radar-chart", radarProfile);
+  renderChinaDistributionChart("showcase-map-chart-main", bundle.mapDistribution || []);
+  renderKeywordCloud("showcase-keyword-cloud", bundle.keywordCloud || []);
 }
 
 function renderAlumniDashboard(bundle) {
-  const recommendedCount = (bundle.applications || []).filter((item) => Number(item.applyStatus) === 2 || Number(item.applyStatus) === 4).length;
-  const pendingCount = (bundle.applications || []).filter((item) => Number(item.applyStatus) === 0 || Number(item.applyStatus) === 1).length;
-  const unreadConsults = (bundle.consults || []).filter((item) => Number(item.readStatus) !== 1).length;
+  document.body.classList.remove("dashboard-showcase-page");
+  const applications = bundle.applications || [];
+  const pendingCount = applications.filter((item) => [0, 1].includes(Number(item.applyStatus))).length;
+  const referredCount = applications.filter((item) => [2, 4].includes(Number(item.applyStatus))).length;
+  const unreadCount = (bundle.consults || []).filter((item) => Number(item.readStatus) !== 1).length;
+  const latestApplications = applications.slice(0, 5);
+  const latestJobs = (bundle.jobs || []).slice(0, 5);
+  const latestConsults = (bundle.consults || []).slice(0, 6);
 
-  renderAppLayout("dashboard", "校友工作台", "从岗位发布、学生申请和消息沟通三个方向查看当前内推工作。", `
+  renderAppLayout("dashboard", "校友工作台", "集中查看岗位发布、申请处理与学生沟通节奏。", `
     <section class="panel reveal">
-      <div class="panel-header">
-        <div>
-          <h2>我的工作面板</h2>
-          <p>适合答辩时演示校友如何从发布岗位走到处理申请和沟通反馈。</p>
-        </div>
-      </div>
       <div class="cards">
-        <div class="card"><div class="card-label">我的岗位</div><div class="card-value">${bundle.jobs.length}</div><div class="card-sub">已录入的内推岗位</div></div>
-        <div class="card"><div class="card-label">收到申请</div><div class="card-value">${bundle.applications.length}</div><div class="card-sub">学生投递到我岗位上的申请</div></div>
-        <div class="card"><div class="card-label">已推进</div><div class="card-value">${recommendedCount}</div><div class="card-sub">已进入推荐或完成阶段</div></div>
-        <div class="card"><div class="card-label">待处理</div><div class="card-value">${pendingCount}</div><div class="card-sub">需要尽快查看和回复</div></div>
+        <div class="card"><div class="card-label">当前岗位</div><div class="card-value">${bundle.jobs.length}</div></div>
+        <div class="card"><div class="card-label">收到申请</div><div class="card-value">${applications.length}</div></div>
+        <div class="card"><div class="card-label">已推进内推</div><div class="card-value">${referredCount}</div></div>
+        <div class="card"><div class="card-label">未读消息</div><div class="card-value">${unreadCount}</div></div>
       </div>
     </section>
     <section class="grid-2 reveal reveal-delay-1">
       <div class="panel">
-        <div class="panel-header"><div><h2>最近岗位</h2><p>可以从这里继续查看审核状态和发布进度。</p></div></div>
+        <div class="panel-header"><div><h2>处理趋势</h2><p>近 7 天申请接收、查看与推进情况。</p></div></div>
+        <div id="alumni-trend-chart" class="chart-surface chart-line"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div><h2>待处理申请</h2><p>优先推进仍处于等待阶段的学生申请。</p></div><span class="meta-tag">${pendingCount} 条</span></div>
         <div class="compact-list">
-          ${(bundle.jobs || []).slice(0, 5).map((item) => {
-            const badge = jobAuditBadge(Number(item.auditStatus));
+          ${latestApplications.map((item) => {
+            const badge = statusBadge(Number(item.applyStatus));
             return `
-              <div class="compact-item">
+              <a class="compact-item compact-link-card" href="/applications.html">
                 <div class="split-header">
-                  <strong>${item.jobTitle || "-"}</strong>
+                  <strong>${escapeHtml(item.studentName || "-")}</strong>
                   <span class="status-badge ${badge.cls}">${badge.text}</span>
                 </div>
-                <p>${item.companyName || "未绑定企业"} / ${item.city || "城市待定"}</p>
-              </div>
+                <p>${escapeHtml(item.jobTitle || "-")} / ${escapeHtml(item.processRemark || "等待校友处理")}</p>
+              </a>
             `;
-          }).join("") || `<div class="compact-item">当前还没有岗位记录。</div>`}
+          }).join("") || '<div class="compact-item">暂无待处理申请。</div>'}
+        </div>
+      </div>
+    </section>
+    <section class="grid-2 reveal reveal-delay-2">
+      <div class="panel">
+        <div class="panel-header"><div><h2>最近岗位</h2><p>快速返回岗位管理继续编辑与查看审核状态。</p></div></div>
+        <div class="compact-list">
+          ${latestJobs.map((item) => {
+            const badge = jobAuditBadge(Number(item.auditStatus));
+            return `
+              <a class="compact-item compact-link-card" href="/jobs.html">
+                <div class="split-header">
+                  <strong>${escapeHtml(item.jobTitle || "-")}</strong>
+                  <span class="status-badge ${badge.cls}">${badge.text}</span>
+                </div>
+                <p>${escapeHtml(item.companyName || "-")} / ${escapeHtml(item.city || "-")}</p>
+              </a>
+            `;
+          }).join("") || '<div class="compact-item">暂无岗位记录。</div>'}
         </div>
       </div>
       <div class="panel">
-        <div class="panel-header"><div><h2>最近消息</h2><p>展示围绕岗位的最新沟通内容。</p></div></div>
+        <div class="panel-header"><div><h2>最近消息</h2><p>查看学生最新提问并回到消息中心继续回复。</p></div></div>
         <div class="compact-list">
-          ${(bundle.consults || []).slice(0, 6).map((item) => `
-            <div class="compact-item">
-              <strong>岗位 ${item.jobId || "-"}</strong>
-              <p>${item.content || "-"}</p>
-            </div>
-          `).join("") || `<div class="compact-item">当前没有新的沟通消息。</div>`}
-        </div>
-      </div>
-    </section>
-    <section class="feature-grid reveal reveal-delay-2">
-      <div class="feature-card"><span class="section-eyebrow">岗位治理</span><strong>发岗待审</strong><p>编辑岗位后会重新回到待审核状态，保证内容变更可追踪。</p></div>
-      <div class="feature-card"><span class="section-eyebrow">申请处理</span><strong>状态闭环</strong><p>收到申请后可查看附件、填写处理意见并推进状态。</p></div>
-      <div class="feature-card"><span class="section-eyebrow">消息跟进</span><strong>线程回复</strong><p>消息只围绕已发生投递的岗位展开，避免错发到无关对象。</p></div>
-    </section>
-    <section class="panel reveal reveal-delay-3">
-      <div class="page-action-bar">
-        <div class="page-action-note">当前未读消息 ${unreadConsults} 条，建议优先处理待跟进申请与沟通线程。</div>
-        <div class="action-group">
-          <a class="btn" href="/jobs.html">去管理岗位</a>
-          <a class="btn ghost-btn" href="/applications.html">去处理申请</a>
+          ${latestConsults.map((item) => `
+            <a class="compact-item compact-link-card" href="/consults.html?jobId=${item.jobId}">
+              <strong>${escapeHtml(item.senderDisplayName || item.receiverDisplayName || "站内消息")}</strong>
+              <p>${escapeHtml(item.content || "-")}</p>
+            </a>
+          `).join("") || '<div class="compact-item">暂无沟通消息。</div>'}
         </div>
       </div>
     </section>
   `);
+
+  renderTrendLineChart(
+    "alumni-trend-chart",
+    (bundle.trend || []).map((item) => item.label),
+    [
+      { name: "收到申请", color: "#347bfa", area: "rgba(52,123,250,0.12)", data: (bundle.trend || []).map((item) => asNumber(item.receivedCount)) },
+      { name: "已查看", color: "#19a974", data: (bundle.trend || []).map((item) => asNumber(item.viewedCount)) },
+      { name: "已内推", color: "#ff7b54", data: (bundle.trend || []).map((item) => asNumber(item.referredCount)) },
+      { name: "已完成", color: "#7a5af8", data: (bundle.trend || []).map((item) => asNumber(item.finishedCount)) }
+    ]
+  );
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+function renderDashboardSummaryCards(bundle) {
+  const applications = bundle.applications || [];
+  const activeCount = applications.filter((item) => [0, 1].includes(Number(item.applyStatus))).length;
+  const latestMessages = bundle.consults || [];
+  const unreadCount = latestMessages.filter((item) => Number(item.readStatus) !== 1).length;
+
+  return `
+    <div class="dashboard-summary-strip">
+      <div class="dashboard-summary-card">
+        <span>匹配岗位</span>
+        <strong>${(bundle.jobs || []).length}</strong>
+      </div>
+      <div class="dashboard-summary-card">
+        <span>处理中申请</span>
+        <strong>${activeCount}</strong>
+      </div>
+      <div class="dashboard-summary-card">
+        <span>最近沟通</span>
+        <strong>${latestMessages.length}</strong>
+      </div>
+      <div class="dashboard-summary-card">
+        <span>未读消息</span>
+        <strong>${unreadCount}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderStudentDashboardV2(session, bundle) {
+  const jobs = sortByMatchScore(bundle.jobs);
+  const topJobs = jobs.slice(0, 4);
+  const radarProfile = buildRadarProfile(jobs);
+  const latestApplication = (bundle.applications || []).slice().sort((left, right) =>
+    String(right.applyTime || "").localeCompare(String(left.applyTime || ""))
+  )[0];
+  const recentMessages = buildRecentConversations(bundle.consults, bundle.jobs, bundle.applications, session);
+  const cityCards = renderShowcaseCityStats(bundle.mapDistribution || []);
+
+  renderStudentShowcaseLayout(session, `
+    <section class="showcase-page-grid dashboard-editorial-grid">
+      <div class="showcase-column">
+        <section class="showcase-hero-card showcase-hero-card-refined">
+          <div class="showcase-hero-copy">
+            <span class="section-eyebrow">学生工作台</span>
+            <h1 class="showcase-title-nowrap">学生求职工作台</h1>
+            <p>保留首页作为总控台：左侧做搜索和能力画像，右侧做城市与机会分布，下方继续承接匹配岗位、进度和消息。</p>
+            <form id="showcase-search-form" class="showcase-search-bar">
+              <input id="showcase-search-input" placeholder="搜索岗位、企业、技能关键词">
+              <button type="submit">搜索岗位</button>
+            </form>
+            ${renderDashboardSummaryCards(bundle)}
+          </div>
+          <div class="showcase-hero-aside">
+            <section class="showcase-mini-panel">
+              <div class="showcase-panel-head">
+                <h2>能力画像</h2>
+              </div>
+              <div id="showcase-radar-chart" class="showcase-radar"></div>
+            </section>
+            <section class="showcase-mini-panel">
+              <div class="showcase-panel-head">
+                <h2>最近申请</h2>
+              </div>
+              <div class="showcase-application-spotlight">
+                <strong>${escapeHtml(latestApplication?.jobTitle || "暂无申请记录")}</strong>
+                <p>${escapeHtml(latestApplication ? `${latestApplication.companyName || "-"} / ${applicationStageText(latestApplication.applyStatus)}` : "可以从职位广场开始新的投递。")}</p>
+                <a class="showcase-job-link" href="/applications.html">查看申请</a>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>高匹配岗位</h2>
+          </div>
+          <div class="showcase-job-grid">
+            ${renderShowcaseTopJobs(session, topJobs)}
+          </div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>最近沟通</h2>
+          </div>
+          <div class="showcase-message-list">
+            ${recentMessages.map((item) => `
+              <a class="showcase-message-item" href="/consults.html?jobId=${item.jobId}">
+                <strong>${escapeHtml(item.jobTitle)}</strong>
+                <span>${escapeHtml(item.companyName)} / ${escapeHtml(item.peerName)}</span>
+                <p>${escapeHtml(item.content || "点击继续查看沟通内容。")}</p>
+              </a>
+            `).join("") || '<div class="empty-state">暂无沟通消息，投递岗位后即可继续和校友交流。</div>'}
+          </div>
+        </section>
+      </div>
+
+      <div class="showcase-column showcase-side-stack">
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>城市机会分布</h2>
+          </div>
+          <div class="showcase-map-layout">
+            <div id="showcase-map-chart-main" class="showcase-map-chart"></div>
+            <div class="showcase-city-list">${cityCards}</div>
+          </div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>岗位关键词</h2>
+          </div>
+          <div id="showcase-keyword-cloud" class="showcase-keyword-cloud"></div>
+        </section>
+
+        <section class="showcase-panel">
+          <div class="showcase-panel-head">
+            <h2>申请进度</h2>
+          </div>
+          ${renderShowcaseStatus(latestApplication)}
+        </section>
+      </div>
+    </section>
+  `);
+
+  bindShowcaseSearch();
+  bindShowcaseFavoriteButtons(session);
+  renderShowcaseRadarChart("showcase-radar-chart", radarProfile);
+  renderChinaDistributionChart("showcase-map-chart-main", bundle.mapDistribution || []);
+  renderKeywordCloud("showcase-keyword-cloud", bundle.keywordCloud || []);
+}
+
+async function bootDashboardPage() {
   const session = ensureLogin();
+  if (typeof ensurePageAccess === "function") {
+    ensurePageAccess("dashboard", session);
+  }
+
   if (session.role === "ALUMNI") {
-    const bundle = await fetchAlumniDashboardBundle(session);
-    renderAlumniDashboard(bundle);
+    renderAlumniDashboard(await fetchAlumniDashboardBundle(session));
     return;
   }
 
   await fetchFavoriteJobIds(session.profileId);
   const bundle = await fetchStudentDashboardBundle(session);
-  renderStudentDashboard(session, bundle, getFavoriteJobIds(session.profileId));
+  renderStudentDashboardV2(session, bundle);
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    if (typeof globalThis.runPageTask === "function") {
+      await globalThis.runPageTask({ pageKey: "dashboard", title: "求职首页", subtitle: "" }, bootDashboardPage);
+      return;
+    }
+    await bootDashboardPage();
+  } catch (error) {
+    console.error(error);
+  }
 });

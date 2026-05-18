@@ -3,6 +3,8 @@ let toastTimer = null;
 let favoriteCache = {};
 let attachmentPreviewBlobUrl = "";
 let attachmentPreviewRequestSeq = 0;
+let pdfPreviewInitScheduled = false;
+let pdfJsModulePromise = null;
 
 function showToast(message, duration = 4000) {
   let container = document.getElementById("toast-container");
@@ -145,6 +147,40 @@ function roleText(role) {
   return { ADMIN: "管理员", STUDENT: "学生", ALUMNI: "校友" }[role] || role;
 }
 
+function workspaceRoleSummary(role) {
+  return {
+    STUDENT: "岗位浏览与投递",
+    ALUMNI: "岗位维护与学生协作",
+    ADMIN: "审核治理与数据总览"
+  }[role] || "平台工作台";
+}
+
+function renderWorkspaceEditorialHeader(session, {
+  eyebrow,
+  title,
+  subtitle,
+  roleName,
+  roleSummary,
+  username
+} = {}) {
+  const resolvedRoleName = roleName || roleText(session?.role);
+  const resolvedRoleSummary = roleSummary || workspaceRoleSummary(session?.role);
+  return `
+    <section class="panel workspace-editorial-head reveal">
+      <div class="workspace-editorial-copy">
+        <span class="section-eyebrow">${escapeHtml(eyebrow || `${resolvedRoleName}工作台`)}</span>
+        <h1>${escapeHtml(title || "工作台")}</h1>
+        <p>${escapeHtml(subtitle || resolvedRoleSummary)}</p>
+      </div>
+      <div class="workspace-editorial-chips">
+        <span class="workspace-chip">${escapeHtml(resolvedRoleName)}</span>
+        <span class="workspace-chip workspace-chip-muted">${escapeHtml(resolvedRoleSummary)}</span>
+        <span class="workspace-chip workspace-chip-muted">${escapeHtml(username || session?.username || "-")}</span>
+      </div>
+    </section>
+  `;
+}
+
 function ensurePageAccess(pageKey, session) {
   if (!session.menus || !session.menus.includes(pageKey)) {
     location.href = session.landingPage || "/dashboard.html";
@@ -161,10 +197,7 @@ function saveSidebarCollapsed() {
 }
 
 function applySidebarCollapsedState() {
-  const shell = document.querySelector(".app-shell");
-  if (shell) {
-    shell.classList.remove("sidebar-collapsed");
-  }
+  return;
 }
 
 window.__toggleSidebar = function __toggleSidebar() {
@@ -175,7 +208,7 @@ function bindSidebarToggle() {
   return;
 }
 
-function renderAppLayout(pageKey, title, subtitle, mainContent) {
+function renderAppLayout(pageKey, title, subtitle, mainContent, options = {}) {
   const session = ensureLogin();
   ensurePageAccess(pageKey, session);
   const roleConfig = getRoleConfig(session.role);
@@ -186,72 +219,119 @@ function renderAppLayout(pageKey, title, subtitle, mainContent) {
     ALUMNI: "内推岗位与申请处理",
     ADMIN: "审核治理与数据总览"
   }[session.role] || "平台工作台";
-  const groupOrder = [...new Set(menus.map((item) => item.group || "功能"))];
-  const groupedMenus = groupOrder.map((group) => ({
-    group,
-    items: menus.filter((item) => (item.group || "功能") === group)
-  }));
+  const primaryMenus = menus.slice(0, 7);
+  const secondaryMenus = menus.slice(7);
+  const summaryLabel = {
+    STUDENT: "学生工作台",
+    ALUMNI: "校友工作台",
+    ADMIN: "管理工作台"
+  }[session.role] || "平台工作台";
+  const hideDefaultHero = Boolean(options.hideDefaultHero);
+  const shellExtraClass = options.shellClassName ? ` ${options.shellClassName}` : "";
+  const contentExtraClass = options.contentClassName ? ` ${options.contentClassName}` : "";
 
   document.title = `${title} - 校友内推平台`;
+  document.body.classList.remove("dashboard-showcase-page");
+  document.body.classList.add("workspace-unified-page");
   document.getElementById("app").innerHTML = `
-    <div class="app-shell">
-      <aside class="sidebar">
-        <div class="sidebar-inner">
-          <div class="sidebar-top modern-sidebar-top">
-            <div class="brand-wrap">
-              <div class="brand-mark">校</div>
-              <div class="brand-copy">
-                <div class="brand">校友内推平台</div>
-                <div class="brand-sub">${roleConfig.subtitle}</div>
-              </div>
-            </div>
-          </div>
-          <div class="user-card modern-user-card">
-            <div class="name">${session.displayName}</div>
-            <div class="meta">${roleName}账号</div>
-            <div class="meta subtle">${session.username}</div>
-          </div>
-          <nav class="menu">
-            ${groupedMenus.map((section) => `
-              <div class="menu-group">
-                ${section.items.map((item) => `
-                  <a class="${item.key === pageKey ? "active" : ""}" href="${item.href}" title="${item.label}">
-                    <span class="menu-short">${item.shortLabel}</span>
-                    <span class="menu-copy">
-                      <span class="menu-label">${item.label}</span>
-                    </span>
-                  </a>
-                `).join("")}
-              </div>
+    <div class="showcase-shell workspace-shell${hideDefaultHero ? " workspace-shell-no-hero" : ""}${shellExtraClass}" data-page-key="${pageKey}">
+      <header class="showcase-topbar workspace-topbar-shell">
+        <div class="showcase-topbar-inner workspace-topbar-inner">
+          <div class="showcase-brand workspace-brand">校友内推平台</div>
+          <nav class="showcase-nav workspace-nav">
+            ${primaryMenus.map((item) => `
+              <a class="${item.key === pageKey ? "active" : ""}" href="${item.href}" title="${item.label}">${item.label}</a>
             `).join("")}
           </nav>
-          <button class="btn logout-btn" type="button" onclick="logout()">退出登录</button>
-        </div>
-      </aside>
-      <main class="content">
-        <div class="workspace-topbar">
-          <div class="workspace-meta">
-            <span class="workspace-chip">${roleName}</span>
-            <span class="workspace-chip workspace-chip-muted">${roleSummary}</span>
-            <span class="workspace-avatar">${String(session.displayName || "?").slice(0, 1)}</span>
+          <div class="showcase-top-actions workspace-top-actions">
+            <span class="showcase-user workspace-user">${session.displayName}</span>
+            <button class="btn" type="button" onclick="logout()">退出登录</button>
           </div>
         </div>
-        <div class="page-title modern-page-title">
-          <div>
-            <h1>${title}</h1>
-            ${subtitle ? `<p>${subtitle}</p>` : ""}
-          </div>
-          <div class="page-title-side">
-            <div class="pill">${session.displayName}</div>
-          </div>
+      </header>
+      <main class="showcase-main workspace-main" data-page-key="${pageKey}">
+        ${hideDefaultHero ? "" : `
+          <section class="showcase-panel workspace-hero-panel">
+            <div class="workspace-hero-copy">
+              <span class="section-eyebrow">${summaryLabel}</span>
+              <h1>${title}</h1>
+              ${subtitle ? `<p>${subtitle}</p>` : `<p>${roleSummary}</p>`}
+            </div>
+            <div class="workspace-hero-meta">
+              <span class="workspace-chip">${roleName}</span>
+              <span class="workspace-chip workspace-chip-muted">${roleSummary}</span>
+              <span class="workspace-chip workspace-chip-muted">${session.username}</span>
+            </div>
+          </section>
+        `}
+        ${secondaryMenus.length ? `
+          <section class="showcase-panel workspace-subnav-panel">
+            <div class="workspace-subnav">
+              ${secondaryMenus.map((item) => `
+                <a class="${item.key === pageKey ? "active" : ""}" href="${item.href}" title="${item.label}">
+                  <strong>${item.label}</strong>
+                  <span>${item.desc || ""}</span>
+                </a>
+              `).join("")}
+            </div>
+          </section>
+        ` : ""}
+        <div class="workspace-page-content${contentExtraClass}">
+          ${mainContent}
         </div>
-        ${mainContent}
       </main>
     </div>
   `;
   bindSidebarToggle();
   applySidebarCollapsedState();
 }
+
+function renderPageLoadFailure(pageKey, title, subtitle, error) {
+  const session = getSession();
+  if (!session) {
+    location.href = "/login.html";
+    return;
+  }
+  if (pageKey && (!session.menus || !session.menus.includes(pageKey))) {
+    location.href = session.landingPage || "/dashboard.html";
+    return;
+  }
+
+  const message = escapeHtml(error?.message || "页面加载失败，请稍后重试。");
+  renderAppLayout(pageKey, title, subtitle, `
+    <section class="panel">
+      <div class="empty-state">
+        <strong>页面暂时不可用</strong>
+        <p>${message}</p>
+        <div class="top-gap">
+          <button class="btn" type="button" onclick="location.reload()">重新加载</button>
+        </div>
+      </div>
+    </section>
+  `);
+}
+
+async function runPageTask(options, task) {
+  try {
+    await task();
+  } catch (error) {
+    const message = String(error?.message || "");
+    if (message === "Not logged in" || message.startsWith("Access denied for page")) {
+      return;
+    }
+    console.error(error);
+    if (document.getElementById("app")?.children?.length) {
+      return;
+    }
+    renderPageLoadFailure(options.pageKey, options.title, options.subtitle, error);
+  }
+}
+
+globalThis.renderAppLayout = renderAppLayout;
+globalThis.renderWorkspaceEditorialHeader = renderWorkspaceEditorialHeader;
+globalThis.runPageTask = runPageTask;
+globalThis.openPageModal = openPageModal;
+globalThis.closePageModal = closePageModal;
 
 function closePageModal() {
   const modal = document.getElementById("page-modal-root");
@@ -350,11 +430,486 @@ function formatDateTime(value) {
   return String(value).replace("T", " ").slice(0, 16);
 }
 
+function asNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function setElementHtml(targetId, html) {
+  const node = typeof targetId === "string" ? document.getElementById(targetId) : targetId;
+  if (node) {
+    node.innerHTML = html;
+  }
+  return node;
+}
+
+function getChartInstance(targetId) {
+  const node = typeof targetId === "string" ? document.getElementById(targetId) : targetId;
+  if (!node || typeof echarts === "undefined") {
+    return null;
+  }
+  const existing = echarts.getInstanceByDom(node);
+  if (existing) {
+    existing.dispose();
+  }
+  return echarts.init(node);
+}
+
+const CITY_COORDINATES = {
+  北京: [116.40, 39.90],
+  上海: [121.47, 31.23],
+  杭州: [120.15, 30.28],
+  深圳: [114.05, 22.55],
+  广州: [113.27, 23.13],
+  成都: [104.06, 30.67],
+  武汉: [114.31, 30.52],
+  南京: [118.80, 32.06],
+  西安: [108.94, 34.34],
+  苏州: [120.58, 31.30]
+};
+
+function renderChinaDistributionChart(targetId, items = []) {
+  const chart = getChartInstance(targetId);
+  if (!chart) {
+    return;
+  }
+  const points = (items || [])
+    .filter((item) => CITY_COORDINATES[item.city])
+    .map((item) => ({
+      name: item.city,
+      value: [
+        ...CITY_COORDINATES[item.city],
+        asNumber(item.jobCount) * 3 + asNumber(item.applicationCount) * 2 + asNumber(item.companyCount),
+        asNumber(item.jobCount),
+        asNumber(item.companyCount),
+        asNumber(item.applicationCount)
+      ]
+    }));
+  chart.setOption({
+    backgroundColor: "transparent",
+    tooltip: {
+      trigger: "item",
+      formatter(params) {
+        const value = params.value || [];
+        return `${params.name}<br>岗位数：${value[3] || 0}<br>企业数：${value[4] || 0}<br>投递数：${value[5] || 0}`;
+      }
+    },
+    geo: {
+      map: "china",
+      roam: false,
+      zoom: 1.08,
+      itemStyle: {
+        areaColor: "#eef4ff",
+        borderColor: "#8ba7d8",
+        borderWidth: 1
+      },
+      emphasis: {
+        itemStyle: {
+          areaColor: "#d7e6ff"
+        }
+      }
+    },
+    series: [
+      {
+        type: "effectScatter",
+        coordinateSystem: "geo",
+        data: points,
+        symbolSize(value) {
+          return 10 + Math.min(26, Math.max(0, (value?.[2] || 0) * 2));
+        },
+        rippleEffect: {
+          brushType: "stroke",
+          scale: 3
+        },
+        itemStyle: {
+          color: "#ff7b54",
+          shadowBlur: 20,
+          shadowColor: "rgba(255,123,84,0.35)"
+        },
+        label: {
+          show: true,
+          formatter: "{b}",
+          position: "right",
+          color: "#1e3357",
+          fontSize: 12
+        }
+      }
+    ]
+  });
+  window.addEventListener("resize", () => chart.resize(), { passive: true });
+}
+
+function renderMatchOrbitChart(targetId, jobs = []) {
+  const chart = getChartInstance(targetId);
+  if (!chart) {
+    return;
+  }
+  const safeJobs = (jobs || [])
+    .slice()
+    .sort((left, right) => asNumber(right.matchScore) - asNumber(left.matchScore))
+    .slice(0, 12);
+
+  const orbitNodes = safeJobs.map((job, index) => {
+    const score = Math.max(0, Math.min(100, asNumber(job.matchScore)));
+    const distance = 18 + ((100 - score) / 100) * 70;
+    const angle = index * 2.399963229728653;
+    const x = Math.cos(angle) * distance;
+    const y = Math.sin(angle) * distance;
+    return {
+      id: job.id,
+      jobTitle: job.jobTitle || `岗位 ${job.id || "-"}`,
+      companyName: job.companyName || "校友企业",
+      matchScore: score,
+      matchSummary: job.matchSummary || "",
+      value: [x, y, score],
+      symbolSize: 22 + score * 0.28,
+      label: {
+        show: index < 6,
+        formatter: job.jobTitle || `岗位 ${job.id || "-"}`,
+        color: "#1c3558",
+        fontSize: 11,
+        width: 90,
+        overflow: "truncate",
+        position: y < 0 ? "top" : "bottom"
+      }
+    };
+  });
+
+  chart.setOption({
+    animationDuration: 600,
+    tooltip: {
+      trigger: "item",
+      formatter(params) {
+        if (params.seriesName === "当前学生") {
+          return "当前学生画像中心";
+        }
+        const data = params.data || {};
+        return [
+          `<strong>${escapeHtml(data.jobTitle || params.name || "岗位")}</strong>`,
+          `${escapeHtml(data.companyName || "校友企业")}`,
+          `匹配度：${asNumber(data.matchScore)}%`,
+          data.matchSummary ? escapeHtml(data.matchSummary) : "匹配度越高，代表越符合当前学生画像"
+        ].join("<br>");
+      }
+    },
+    grid: {
+      left: 10,
+      right: 10,
+      top: 10,
+      bottom: 10
+    },
+    xAxis: {
+      min: -100,
+      max: 100,
+      show: false
+    },
+    yAxis: {
+      min: -100,
+      max: 100,
+      show: false
+    },
+    graphic: [
+      {
+        type: "circle",
+        left: "center",
+        top: "center",
+        shape: { r: 56 },
+        style: {
+          stroke: "#d8e4f7",
+          fill: "rgba(255,255,255,0.18)",
+          lineWidth: 1
+        }
+      },
+      {
+        type: "circle",
+        left: "center",
+        top: "center",
+        shape: { r: 98 },
+        style: {
+          stroke: "#d8e4f7",
+          fill: "rgba(255,255,255,0.08)",
+          lineWidth: 1
+        }
+      },
+      {
+        type: "circle",
+        left: "center",
+        top: "center",
+        shape: { r: 140 },
+        style: {
+          stroke: "#d8e4f7",
+          fill: "transparent",
+          lineWidth: 1
+        }
+      },
+      {
+        type: "text",
+        left: "center",
+        top: "46%",
+        style: {
+          text: "我",
+          fill: "#ffffff",
+          font: "700 20px 'Segoe UI', 'PingFang SC', sans-serif",
+          textAlign: "center"
+        }
+      },
+      {
+        type: "text",
+        left: "center",
+        top: "55%",
+        style: {
+          text: "当前学生",
+          fill: "rgba(255,255,255,0.82)",
+          font: "600 11px 'Segoe UI', 'PingFang SC', sans-serif",
+          textAlign: "center"
+        }
+      }
+    ],
+    series: [
+      {
+        name: "当前学生",
+        type: "scatter",
+        data: [{ value: [0, 0] }],
+        symbolSize: 68,
+        itemStyle: {
+          color: "#122746",
+          shadowBlur: 24,
+          shadowColor: "rgba(18,39,70,0.22)"
+        },
+        emphasis: {
+          disabled: true
+        }
+      },
+      {
+        name: "岗位匹配",
+        type: "scatter",
+        data: orbitNodes,
+        itemStyle: {
+          color: "#ff7b54",
+          borderColor: "#ffffff",
+          borderWidth: 2,
+          shadowBlur: 18,
+          shadowColor: "rgba(255,123,84,0.22)"
+        },
+        emphasis: {
+          scale: 1.08,
+          itemStyle: {
+            color: "#347bfa"
+          }
+        }
+      }
+    ]
+  });
+
+  chart.off("click");
+  chart.on("click", (params) => {
+    const jobId = params?.data?.id;
+    if (jobId) {
+      location.href = `/job-detail.html?id=${jobId}`;
+    }
+  });
+  window.addEventListener("resize", () => chart.resize(), { passive: true });
+}
+
+function renderRadarChart(targetId, breakdown = [], title = "五维匹配") {
+  const chart = getChartInstance(targetId);
+  if (!chart) {
+    return;
+  }
+  const indicators = (breakdown || []).map((item) => ({
+    name: item.label,
+    max: 100
+  }));
+  const values = (breakdown || []).map((item) => asNumber(item.score));
+  chart.setOption({
+    title: {
+      text: title,
+      left: "center",
+      top: 6,
+      textStyle: {
+        color: "#1f355c",
+        fontSize: 14,
+        fontWeight: 600
+      }
+    },
+    tooltip: {
+      trigger: "item"
+    },
+    radar: {
+      center: ["50%", "56%"],
+      radius: "62%",
+      splitNumber: 4,
+      indicator: indicators,
+      axisName: {
+        color: "#38527d"
+      },
+      splitLine: {
+        lineStyle: {
+          color: ["#dfe9fb"]
+        }
+      },
+      splitArea: {
+        areaStyle: {
+          color: ["rgba(238,244,255,0.45)", "rgba(238,244,255,0.15)"]
+        }
+      },
+      axisLine: {
+        lineStyle: {
+          color: "#c8d7f0"
+        }
+      }
+    },
+    series: [
+      {
+        type: "radar",
+        data: [
+          {
+            value: values,
+            name: title,
+            areaStyle: {
+              color: "rgba(52,123,250,0.24)"
+            },
+            lineStyle: {
+              color: "#347bfa",
+              width: 2
+            },
+            itemStyle: {
+              color: "#347bfa"
+            }
+          }
+        ]
+      }
+    ]
+  });
+  window.addEventListener("resize", () => chart.resize(), { passive: true });
+}
+
+function renderTrendLineChart(targetId, labels = [], series = []) {
+  const chart = getChartInstance(targetId);
+  if (!chart) {
+    return;
+  }
+  chart.setOption({
+    tooltip: {
+      trigger: "axis"
+    },
+    legend: {
+      top: 6,
+      textStyle: {
+        color: "#3b4f75"
+      }
+    },
+    grid: {
+      left: 32,
+      right: 18,
+      top: 48,
+      bottom: 28
+    },
+    xAxis: {
+      type: "category",
+      data: labels,
+      axisLine: {
+        lineStyle: {
+          color: "#c8d7f0"
+        }
+      },
+      axisLabel: {
+        color: "#566b92"
+      }
+    },
+    yAxis: {
+      type: "value",
+      splitLine: {
+        lineStyle: {
+          color: "#edf2fb"
+        }
+      },
+      axisLabel: {
+        color: "#566b92"
+      }
+    },
+    series: (series || []).map((item) => ({
+      name: item.name,
+      type: "line",
+      smooth: true,
+      symbol: "circle",
+      symbolSize: 8,
+      lineStyle: {
+        width: 3,
+        color: item.color
+      },
+      itemStyle: {
+        color: item.color
+      },
+      areaStyle: item.area ? { color: item.area } : undefined,
+      data: item.data
+    }))
+  });
+  window.addEventListener("resize", () => chart.resize(), { passive: true });
+}
+
+function renderKeywordCloud(targetId, items = []) {
+  const node = setElementHtml(targetId, "");
+  if (!node) {
+    return;
+  }
+  const safeItems = (items || []).slice(0, 24);
+  if (!safeItems.length) {
+    node.innerHTML = '<div class="empty-state">暂无关键词数据。</div>';
+    return;
+  }
+  const max = Math.max(...safeItems.map((item) => asNumber(item.value, 1)), 1);
+  node.className = `${node.className} keyword-cloud`.trim();
+  node.innerHTML = safeItems.map((item, index) => {
+    const size = 14 + Math.round(asNumber(item.value, 1) / max * 20);
+    const rotate = index % 4 === 0 ? "-6deg" : (index % 3 === 0 ? "5deg" : "0deg");
+    const hue = ["#21446d", "#ff7b54", "#347bfa", "#3b8f5d", "#7a56d8"][index % 5];
+    return `
+      <span class="keyword-pill" style="font-size:${size}px;color:${hue};transform:rotate(${rotate})">
+        ${escapeHtml(item.name)}
+        <small>${asNumber(item.value)}</small>
+      </span>
+    `;
+  }).join("");
+}
+
+function renderProgressSteps(steps = []) {
+  return `
+    <div class="progress-rail">
+      ${(steps || []).map((step) => `
+        <div class="progress-step is-${step.state || "pending"}">
+          <div class="progress-dot">${asNumber(step.step)}</div>
+          <div class="progress-copy">
+            <strong>${escapeHtml(step.title || "")}</strong>
+            <p>${escapeHtml(step.description || "")}</p>
+            ${step.time ? `<span>${escapeHtml(step.time)}</span>` : ""}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 async function fetchFavoriteJobIds(studentId) {
-  const result = await apiRequest(`/referral/job-favorite/list?studentId=${studentId}`);
-  const ids = (result.data?.list || []).map((item) => Number(item.jobId));
-  favoriteCache[studentId] = ids;
-  return ids;
+  try {
+    const result = await apiRequest(`/referral/job-favorite/list?studentId=${studentId}`);
+    const ids = (result.data?.list || []).map((item) => Number(item.jobId));
+    favoriteCache[studentId] = ids;
+    return ids;
+  } catch (error) {
+    favoriteCache[studentId] = [];
+    console.warn("Failed to load favorite jobs:", error);
+    return [];
+  }
 }
 
 function getFavoriteJobIds(studentId) {
@@ -484,10 +1039,30 @@ function buildAttachmentOpenUrl(url = "") {
   return safeUrl;
 }
 
+function canUseDirectAttachmentSource(url = "") {
+  const safeUrl = sanitizeAttachmentUrl(url);
+  if (!safeUrl || (!isPdfUrl(safeUrl) && !isImageUrl(safeUrl))) {
+    return false;
+  }
+  try {
+    const resolved = new URL(safeUrl, window.location.origin);
+    return resolved.origin === window.location.origin && resolved.pathname.startsWith("/uploads/");
+  } catch (error) {
+    return safeUrl.startsWith("/uploads/");
+  }
+}
+
 async function buildAttachmentPreviewBlobUrl(url) {
   const safeUrl = sanitizeAttachmentUrl(url);
   if (!safeUrl) {
     return "";
+  }
+  if (canUseDirectAttachmentSource(safeUrl) && isImageUrl(safeUrl)) {
+    try {
+      return new URL(safeUrl, window.location.origin).href;
+    } catch (error) {
+      return safeUrl;
+    }
   }
   const previewPayload = await fetchAttachmentPreviewPayload(safeUrl);
   const base64Content = previewPayload?.base64Content;
@@ -499,6 +1074,106 @@ async function buildAttachmentPreviewBlobUrl(url) {
   clearAttachmentPreviewBlobUrl();
   attachmentPreviewBlobUrl = URL.createObjectURL(new Blob([bytes], { type: contentType }));
   return attachmentPreviewBlobUrl;
+}
+
+async function loadPdfJsModule() {
+  if (!pdfJsModulePromise) {
+    pdfJsModulePromise = import("/vendor/pdfjs/pdf.mjs")
+      .then((module) => {
+        const pdfjs = module?.default || module;
+        if (pdfjs?.GlobalWorkerOptions) {
+          pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.mjs";
+        }
+        return pdfjs;
+      })
+      .catch((error) => {
+        pdfJsModulePromise = null;
+        throw error;
+      });
+  }
+  return pdfJsModulePromise;
+}
+
+function renderPdfPreviewStageMessage(stage, className, message) {
+  stage.innerHTML = `<div class="${className}">${escapeHtml(message)}</div>`;
+}
+
+async function renderInlinePdfPreview(stage) {
+  if (!stage || stage.dataset.pdfRendering === "1" || stage.dataset.pdfRendered === "1") {
+    return;
+  }
+  const safeUrl = sanitizeAttachmentUrl(stage.dataset.pdfPreviewUrl || "");
+  if (!safeUrl) {
+    renderPdfPreviewStageMessage(stage, "attachment-pdf-error", "附件地址无效");
+    return;
+  }
+
+  stage.dataset.pdfRendering = "1";
+  renderPdfPreviewStageMessage(stage, "attachment-pdf-loading", "正在加载 PDF 预览...");
+
+  try {
+    const pdfjs = await loadPdfJsModule();
+    const pdfBlobUrl = await buildAttachmentPreviewBlobUrl(safeUrl);
+    const pdf = await pdfjs.getDocument(pdfBlobUrl || safeUrl).promise;
+    const pages = document.createElement("div");
+    const stageWidth = Math.max(stage.clientWidth || 0, 720);
+    const preferredPreviewWidth = Math.max(360, stageWidth - 24);
+
+    pages.className = "attachment-pdf-pages";
+    stage.dataset.pdfPageCount = String(pdf.numPages || 0);
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const cssScale = Math.min(2, Math.max(0.35, preferredPreviewWidth / baseViewport.width));
+      const outputScale = window.devicePixelRatio || 1;
+      const renderViewport = page.getViewport({ scale: cssScale * outputScale });
+      const displayViewport = page.getViewport({ scale: cssScale });
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d", { alpha: false });
+
+      canvas.className = "attachment-pdf-canvas";
+      canvas.width = Math.max(1, Math.floor(renderViewport.width));
+      canvas.height = Math.max(1, Math.floor(renderViewport.height));
+      canvas.style.width = `${displayViewport.width}px`;
+      canvas.style.height = `${displayViewport.height}px`;
+
+      await page.render({
+        canvasContext: context,
+        viewport: renderViewport
+      }).promise;
+
+      const pageShell = document.createElement("div");
+      pageShell.className = "attachment-pdf-page";
+      pageShell.appendChild(canvas);
+      pages.appendChild(pageShell);
+    }
+
+    stage.innerHTML = "";
+    stage.appendChild(pages);
+    stage.dataset.pdfRendered = "1";
+  } catch (error) {
+    console.warn("Failed to render inline PDF preview", error);
+    renderPdfPreviewStageMessage(stage, "attachment-pdf-error", "PDF 预览加载失败，请使用下方按钮查看。");
+  } finally {
+    delete stage.dataset.pdfRendering;
+  }
+}
+
+function scheduleInlinePdfPreviews() {
+  if (pdfPreviewInitScheduled) {
+    return;
+  }
+  pdfPreviewInitScheduled = true;
+  queueMicrotask(async () => {
+    pdfPreviewInitScheduled = false;
+    const stages = Array.from(document.querySelectorAll(".attachment-pdf-stage[data-pdf-preview-url]"))
+      .filter((stage) => stage.dataset.pdfRendered !== "1");
+    for (const stage of stages) {
+      // Serial rendering keeps memory usage stable when multiple previews exist.
+      // eslint-disable-next-line no-await-in-loop
+      await renderInlinePdfPreview(stage);
+    }
+  });
 }
 
 function ensureAttachmentPreviewModal() {
@@ -623,6 +1298,12 @@ if (document.readyState === "loading") {
   normalizeAllAttachmentOpenAnchors();
 }
 
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", scheduleInlinePdfPreviews, { once: true });
+} else {
+  scheduleInlinePdfPreviews();
+}
+
 if (typeof MutationObserver !== "undefined") {
   const attachmentOpenLinkObserver = new MutationObserver(() => {
     normalizeAllAttachmentOpenAnchors();
@@ -632,6 +1313,17 @@ if (typeof MutationObserver !== "undefined") {
   } else {
     document.addEventListener("DOMContentLoaded", () => {
       attachmentOpenLinkObserver.observe(document.body, { childList: true, subtree: true });
+    }, { once: true });
+  }
+
+  const pdfPreviewObserver = new MutationObserver(() => {
+    scheduleInlinePdfPreviews();
+  });
+  if (document.body) {
+    pdfPreviewObserver.observe(document.body, { childList: true, subtree: true });
+  } else {
+    document.addEventListener("DOMContentLoaded", () => {
+      pdfPreviewObserver.observe(document.body, { childList: true, subtree: true });
     }, { once: true });
   }
 }
@@ -697,12 +1389,9 @@ function renderAttachmentPreview(url) {
           </div>
           <span class="document-metric">PDF</span>
         </div>
-        <iframe
-          class="attachment-preview-frame"
-          src="${buildAttachmentOpenUrl(safeUrl)}&embed=1"
-          title="PDF 预览"
-          loading="lazy">
-        </iframe>
+        <div class="attachment-pdf-stage" data-pdf-preview-url="${escapeHtml(safeUrl)}">
+          <div class="attachment-pdf-loading">正在加载 PDF 预览...</div>
+        </div>
         <div class="document-actions">${renderAttachmentLink(safeUrl, "查看 PDF")}</div>
       </div>
     `;

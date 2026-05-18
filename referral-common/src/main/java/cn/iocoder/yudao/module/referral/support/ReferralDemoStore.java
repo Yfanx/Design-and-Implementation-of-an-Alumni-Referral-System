@@ -248,6 +248,7 @@ public class ReferralDemoStore {
         company1.setCity("上海");
         company1.setAddress("浦东新区张江高科技园");
         company1.setCompanyDesc("聚焦校园招聘与企业人力资源数字化。");
+        company1.setLogoUrl("/uploads/demo/company/tencent.png");
         company1.setOfficialWebsite("https://example.com/huaxing");
         company1.setStatus(1);
         saveCompany(company1);
@@ -259,6 +260,7 @@ public class ReferralDemoStore {
         company2.setCity("杭州");
         company2.setAddress("余杭区未来科技城");
         company2.setCompanyDesc("从事企业智能推荐与人才匹配服务。");
+        company2.setLogoUrl("/uploads/demo/company/alibabacloud.png");
         company2.setOfficialWebsite("https://example.com/yuntuo");
         company2.setStatus(1);
         saveCompany(company2);
@@ -314,7 +316,7 @@ public class ReferralDemoStore {
         student1.setExpectedJob("Java开发");
         student1.setExpectedCity("上海");
         student1.setSkillTags("Java,Spring Boot,MySQL");
-        student1.setResumeUrl("/uploads/demo/resume/wang.pdf");
+        student1.setResumeUrl("/uploads/demo/resume/wang_backend_resume.pdf");
         student1.setIntro("希望从事后端开发岗位。");
         saveStudent(student1);
 
@@ -331,7 +333,7 @@ public class ReferralDemoStore {
         student2.setExpectedJob("算法工程师");
         student2.setExpectedCity("杭州");
         student2.setSkillTags("Python,机器学习,数据分析");
-        student2.setResumeUrl("/uploads/demo/resume/zhao.pdf");
+        student2.setResumeUrl("/uploads/demo/resume/zhao_algorithm_resume.pdf");
         student2.setIntro("希望从事推荐算法和数据分析相关工作。");
         saveStudent(student2);
     }
@@ -419,7 +421,7 @@ public class ReferralDemoStore {
         referral1.setJobId(4001L);
         referral1.setStudentId(2001L);
         referral1.setAlumniId(1001L);
-        referral1.setResumeUrl("/uploads/demo/resume/wang.pdf");
+        referral1.setResumeUrl("/uploads/demo/resume/wang_backend_resume.pdf");
         referral1.setSelfIntroduction("有 Java Web 项目经验，希望加入后端开发团队。");
         referral1.setMatchScore(new java.math.BigDecimal("88.50"));
         referral1.setApplyStatus(ReferralApplicationStatusEnum.VIEWED.getStatus());
@@ -432,7 +434,7 @@ public class ReferralDemoStore {
         referral2.setJobId(4002L);
         referral2.setStudentId(2002L);
         referral2.setAlumniId(1002L);
-        referral2.setResumeUrl("/uploads/demo/resume/zhao.pdf");
+        referral2.setResumeUrl("/uploads/demo/resume/zhao_algorithm_resume.pdf");
         referral2.setSelfIntroduction("做过推荐算法课程项目，希望尝试真实业务场景。");
         referral2.setMatchScore(new java.math.BigDecimal("92.00"));
         referral2.setApplyStatus(ReferralApplicationStatusEnum.REFERRED.getStatus());

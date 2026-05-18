@@ -20,6 +20,7 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class ConsultMessageServiceImpl implements ConsultMessageService {
@@ -81,29 +82,37 @@ public class ConsultMessageServiceImpl implements ConsultMessageService {
         Long scopedUserId = actor.isAdmin() ? null : actor.requireUserId("缺少当前登录用户信息");
         if (storageProperties.isMysqlMode()) {
             StringBuilder sql = new StringBuilder("""
-                    SELECT id, job_id, sender_user_id, receiver_user_id, sender_role, receiver_role, content, read_status, send_time
-                    FROM ref_consult_message WHERE 1 = 1
+                    SELECT m.id, m.job_id, m.sender_user_id, m.receiver_user_id, m.sender_role, m.receiver_role,
+                           m.content, m.read_status, m.send_time,
+                           COALESCE(ss.real_name, sa.real_name, CONCAT('用户 ', m.sender_user_id)) AS sender_display_name,
+                           COALESCE(rs.real_name, ra.real_name, CONCAT('用户 ', m.receiver_user_id)) AS receiver_display_name
+                    FROM ref_consult_message m
+                    LEFT JOIN ref_student_info ss ON ss.user_id = m.sender_user_id
+                    LEFT JOIN ref_alumni_info sa ON sa.user_id = m.sender_user_id
+                    LEFT JOIN ref_student_info rs ON rs.user_id = m.receiver_user_id
+                    LEFT JOIN ref_alumni_info ra ON ra.user_id = m.receiver_user_id
+                    WHERE 1 = 1
                     """);
             List<Object> args = new ArrayList<>();
             if (pageReqVO.getJobId() != null) {
-                sql.append(" AND job_id = ?");
+                sql.append(" AND m.job_id = ?");
                 args.add(pageReqVO.getJobId());
             }
             if (scopedUserId != null) {
-                sql.append(" AND (sender_user_id = ? OR receiver_user_id = ?)");
+                sql.append(" AND (m.sender_user_id = ? OR m.receiver_user_id = ?)");
                 args.add(scopedUserId);
                 args.add(scopedUserId);
             } else {
                 if (pageReqVO.getSenderUserId() != null) {
-                    sql.append(" AND sender_user_id = ?");
+                    sql.append(" AND m.sender_user_id = ?");
                     args.add(pageReqVO.getSenderUserId());
                 }
                 if (pageReqVO.getReceiverUserId() != null) {
-                    sql.append(" AND receiver_user_id = ?");
+                    sql.append(" AND m.receiver_user_id = ?");
                     args.add(pageReqVO.getReceiverUserId());
                 }
             }
-            sql.append(" ORDER BY id DESC");
+            sql.append(" ORDER BY m.id DESC");
             List<ConsultMessageRespVO> list = jdbcTemplate.query(sql.toString(), (rs, rowNum) -> mapConsult(rs), args.toArray());
             return new PageResult<>(list, (long) list.size());
         }
@@ -254,6 +263,8 @@ public class ConsultMessageServiceImpl implements ConsultMessageService {
         target.setJobId(source.getJobId());
         target.setSenderUserId(source.getSenderUserId());
         target.setReceiverUserId(source.getReceiverUserId());
+        target.setSenderDisplayName(resolveDisplayName(source.getSenderUserId(), source.getSenderRole()));
+        target.setReceiverDisplayName(resolveDisplayName(source.getReceiverUserId(), source.getReceiverRole()));
         target.setSenderRole(source.getSenderRole());
         target.setReceiverRole(source.getReceiverRole());
         target.setContent(source.getContent());
@@ -268,6 +279,8 @@ public class ConsultMessageServiceImpl implements ConsultMessageService {
         target.setJobId((Long) rs.getObject("job_id"));
         target.setSenderUserId((Long) rs.getObject("sender_user_id"));
         target.setReceiverUserId((Long) rs.getObject("receiver_user_id"));
+        target.setSenderDisplayName(rs.getString("sender_display_name"));
+        target.setReceiverDisplayName(rs.getString("receiver_display_name"));
         target.setSenderRole((Integer) rs.getObject("sender_role"));
         target.setReceiverRole((Integer) rs.getObject("receiver_role"));
         target.setContent(rs.getString("content"));
@@ -276,6 +289,29 @@ public class ConsultMessageServiceImpl implements ConsultMessageService {
             target.setSendTime(rs.getTimestamp("send_time").toLocalDateTime());
         }
         return target;
+    }
+
+    private String resolveDisplayName(Long userId, Integer role) {
+        if (userId == null) {
+            return "";
+        }
+        if (Objects.equals(role, ROLE_STUDENT)) {
+            return referralDemoStore.listStudents().stream()
+                    .filter(item -> Objects.equals(item.getUserId(), userId))
+                    .map(item -> item.getRealName())
+                    .filter(name -> name != null && !name.isBlank())
+                    .findFirst()
+                    .orElse("学生 " + userId);
+        }
+        if (Objects.equals(role, ROLE_ALUMNI)) {
+            return referralDemoStore.listAlumni().stream()
+                    .filter(item -> Objects.equals(item.getUserId(), userId))
+                    .map(item -> item.getRealName())
+                    .filter(name -> name != null && !name.isBlank())
+                    .findFirst()
+                    .orElse("校友 " + userId);
+        }
+        return "用户 " + userId;
     }
 
     private record MessagePayload(Long jobId, Long senderUserId, Long receiverUserId, Integer senderRole, Integer receiverRole, String content) {

@@ -1,9 +1,12 @@
 package cn.iocoder.yudao.module.referral.service.dashboard;
 
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.ApplicationTrendRespVO;
+import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.AlumniProcessingTrendRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.CityDistributionRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.HotJobRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.IndustryDistributionRespVO;
+import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.KeywordCloudRespVO;
+import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.MapDistributionRespVO;
 import cn.iocoder.yudao.module.referral.controller.admin.dashboard.vo.ReferralOverviewRespVO;
 
 import java.util.List;
@@ -19,4 +22,10 @@ public interface DashboardService {
     List<HotJobRespVO> getHotJobs();
 
     List<ApplicationTrendRespVO> getApplicationTrend();
+
+    List<MapDistributionRespVO> getMapDistribution();
+
+    List<KeywordCloudRespVO> getKeywordCloud();
+
+    List<AlumniProcessingTrendRespVO> getAlumniProcessingTrend(Integer days);
 }

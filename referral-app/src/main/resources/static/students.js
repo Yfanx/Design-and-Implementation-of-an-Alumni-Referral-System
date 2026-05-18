@@ -1,6 +1,6 @@
 async function loadStudentsPage() {
   const result = await apiRequest("/referral/student-info/list");
-  return result.data.list || [];
+  return result.data?.list || [];
 }
 
 function renderStudentTable(students) {
@@ -19,14 +19,7 @@ function renderStudentTable(students) {
   );
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const session = ensureLogin();
-  if (session.role !== "ADMIN") {
-    location.href = "/dashboard.html";
-    return;
-  }
-
-  const students = await loadStudentsPage();
+function renderStudentsPage(students) {
   renderAppLayout("students", "学生管理", "查看学生求职档案、目标岗位和核心技能。", `
     <section class="panel">
       <div class="cards">
@@ -36,13 +29,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>
     </section>
     <section class="panel">
-      <div class="panel-header"><div><h2>学生档案列表</h2><p>用于汇总学生求职意向和简历画像。</p></div></div>
+      <div class="panel-header">
+        <div>
+          <h2>学生档案列表</h2>
+          <p>用于汇总学生求职意向、技能标签和简历附件。</p>
+        </div>
+      </div>
       <div class="search-bar compact-search">
         <input id="student-keyword-filter" placeholder="搜索姓名、专业、岗位方向">
         <select id="student-city-filter">
           <option value="">目标城市不限</option>
           <option value="上海">上海</option>
           <option value="杭州">杭州</option>
+          <option value="深圳">深圳</option>
+          <option value="北京">北京</option>
         </select>
         <button class="btn" id="student-filter-btn">筛选</button>
       </div>
@@ -54,12 +54,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     const keyword = (document.getElementById("student-keyword-filter").value || "").trim();
     const city = document.getElementById("student-city-filter").value || "";
     const filtered = students.filter((item) => {
-      return (!keyword || item.realName.includes(keyword) || (item.major || "").includes(keyword) || (item.expectedJob || "").includes(keyword))
+      return (!keyword
+        || (item.realName || "").includes(keyword)
+        || (item.major || "").includes(keyword)
+        || (item.expectedJob || "").includes(keyword))
         && (!city || item.expectedCity === city);
     });
     renderStudentTable(filtered);
   };
 
-  document.getElementById("student-filter-btn").addEventListener("click", applyFilter);
+  document.getElementById("student-filter-btn")?.addEventListener("click", applyFilter);
   applyFilter();
+}
+
+async function bootStudentsPage() {
+  const session = ensureLogin();
+  if (session.role !== "ADMIN") {
+    location.href = "/dashboard.html";
+    return;
+  }
+  renderStudentsPage(await loadStudentsPage());
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    if (typeof globalThis.runPageTask === "function") {
+      await globalThis.runPageTask({ pageKey: "students", title: "学生管理", subtitle: "" }, bootStudentsPage);
+      return;
+    }
+    await bootStudentsPage();
+  } catch (error) {
+    console.error(error);
+  }
 });
