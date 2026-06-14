@@ -2,6 +2,7 @@ logs/
 */target/
 .idea/
 .playwright-cli/
+node_modules/
 .tmp-pdfjs/
 output/
 tmp/

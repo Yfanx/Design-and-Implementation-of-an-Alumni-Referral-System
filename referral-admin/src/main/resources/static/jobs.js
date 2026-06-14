@@ -80,7 +80,7 @@ function bindDeleteJobBtn() {
       overlay.innerHTML = `
         <div class="modal-card">
           <h3>确认删除</h3>
-          <p style="margin:0 0 20px;color:var(--muted)">确定要删除岗位 ${id} 吗？此操作不可恢复。</p>
+          <p style="margin:0 0 20px;color:var(--muted)">确定要删除这个岗位吗？此操作不可恢复。</p>
           <div class="modal-actions">
             <button class="btn" id="del-cancel">取消</button>
             <button class="btn danger" id="del-confirm">确认删除</button>
@@ -135,8 +135,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         <section class="panel">
           <div class="panel-header"><div><h2>发布新岗位</h2><p>提交后会进入待审核状态，适合演示校友发岗流程。</p></div></div>
           <form class="demo-form" id="job-form">
-            <input name="alumniId" value="${session.profileId}" placeholder="校友档案 ID">
-            <input name="companyId" value="3001" placeholder="企业 ID">
+            <input type="hidden" name="alumniId" value="${session.profileId}">
+            <input type="hidden" name="companyId" value="3001">
             <input name="jobTitle" value="后端开发工程师" placeholder="岗位名称">
             <input name="jobType" value="校招" placeholder="岗位类型">
             <input name="industry" value="互联网" placeholder="所属行业">
@@ -162,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      document.getElementById("job-result").innerText = `岗位发布成功，记录 ID：${response.data}`;
+      document.getElementById("job-result").innerText = "岗位发布成功，列表已刷新。";
       location.reload();
     });
     bindEditJobBtn();
@@ -177,11 +177,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   `);
 
   renderTable("admin-job-table",
-    ["ID", "岗位名称", "企业", "城市", "行业", "审核状态", "操作"],
+    ["岗位名称", "企业", "城市", "行业", "审核状态", "操作"],
     jobs.map(item => {
       const badge = jobAuditBadge(item.auditStatus);
       return [
-        item.id,
         item.jobTitle,
         item.companyName,
         item.city,

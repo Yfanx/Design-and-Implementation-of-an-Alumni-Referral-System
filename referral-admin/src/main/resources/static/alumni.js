@@ -17,9 +17,8 @@ function renderAlumniSummary(alumniList) {
 
 function renderAlumniTable(alumniList, sourceList) {
   renderTable("alumni-table",
-    ["ID", "姓名", "企业", "岗位", "城市", "核验状态", "操作"],
+    ["姓名", "企业", "岗位", "城市", "核验状态", "操作"],
     alumniList.map(item => [
-      item.id,
       item.realName,
       item.companyName,
       item.positionName,

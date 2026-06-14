@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <input name="graduationYear" value="${profile.graduationYear || ""}" placeholder="毕业年份">
         <input name="college" value="${profile.college || ""}" placeholder="学院">
         <input name="major" value="${profile.major || ""}" placeholder="专业">
-        <input name="companyId" value="${profile.companyId || ""}" placeholder="企业 ID">
+        <input type="hidden" name="companyId" value="${profile.companyId || ""}">
         <input name="companyName" value="${profile.companyName || ""}" placeholder="企业名称">
         <input name="industry" value="${profile.industry || ""}" placeholder="行业">
         <input name="positionName" value="${profile.positionName || ""}" placeholder="岗位">

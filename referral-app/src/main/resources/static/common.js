@@ -566,7 +566,7 @@ function renderMatchOrbitChart(targetId, jobs = []) {
     const y = Math.sin(angle) * distance;
     return {
       id: job.id,
-      jobTitle: job.jobTitle || `岗位 ${job.id || "-"}`,
+      jobTitle: job.jobTitle || "待完善岗位",
       companyName: job.companyName || "校友企业",
       matchScore: score,
       matchSummary: job.matchSummary || "",
@@ -574,7 +574,7 @@ function renderMatchOrbitChart(targetId, jobs = []) {
       symbolSize: 22 + score * 0.28,
       label: {
         show: index < 6,
-        formatter: job.jobTitle || `岗位 ${job.id || "-"}`,
+        formatter: job.jobTitle || "待完善岗位",
         color: "#1c3558",
         fontSize: 11,
         width: 90,

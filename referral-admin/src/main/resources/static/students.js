@@ -5,9 +5,8 @@ async function loadStudentsPage() {
 
 function renderStudentTable(students) {
   renderTable("student-table",
-    ["ID", "姓名", "专业", "目标岗位", "目标城市", "技能标签", "简历附件"],
+    ["姓名", "专业", "目标岗位", "目标城市", "技能标签", "简历附件"],
     students.map((item) => [
-      item.id,
       item.realName,
       item.major,
       item.expectedJob,

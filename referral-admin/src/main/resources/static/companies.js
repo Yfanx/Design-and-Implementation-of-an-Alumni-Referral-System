@@ -42,7 +42,7 @@ function bindEditCompanyBtn(companies) {
 function bindDeleteCompanyBtn() {
   document.querySelectorAll(".delete-company-btn").forEach(button => {
     button.addEventListener("click", async () => {
-      if (!confirm(`确认删除企业 ${button.dataset.id}？此操作不可恢复。`)) return;
+      if (!confirm("确认删除该企业吗？此操作不可恢复。")) return;
       await apiRequest(`/referral/company-info/delete?id=${button.dataset.id}`, { method: "DELETE" });
       location.reload();
     });
@@ -162,8 +162,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     `);
 
     renderTable("company-table",
-      ["ID", "企业", "行业", "城市", "规模", "关联岗位", "操作"],
-      companies.map(item => [item.id, item.companyName, item.industry, item.city, item.companySize, companyJobCount(jobs, item.id),
+      ["企业", "行业", "城市", "规模", "关联岗位", "操作"],
+      companies.map(item => [item.companyName, item.industry, item.city, item.companySize, companyJobCount(jobs, item.id),
         `<button class="btn edit-company-btn" data-id="${item.id}">编辑</button>
          <button class="btn delete-company-btn" data-id="${item.id}" style="background:#888">删除</button>`
       ])
@@ -179,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      document.getElementById("company-result").innerText = `企业创建成功，记录 ID：${response.data}`;
+      document.getElementById("company-result").innerText = "企业创建成功，列表已刷新。";
       location.reload();
     });
 

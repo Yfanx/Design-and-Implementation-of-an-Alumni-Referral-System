@@ -185,7 +185,7 @@ function alumniProfileForm(profile) {
         <label class="form-field"><span>毕业年份</span><input name="graduationYear" value="${escapeHtml(profile.graduationYear || "")}"></label>
         <label class="form-field"><span>学院</span><input name="college" value="${escapeHtml(profile.college || "")}"></label>
         <label class="form-field"><span>专业</span><input name="major" value="${escapeHtml(profile.major || "")}"></label>
-        <label class="form-field"><span>企业 ID</span><input name="companyId" value="${escapeHtml(profile.companyId || "")}"></label>
+        <input type="hidden" name="companyId" value="${escapeHtml(profile.companyId || "")}">
         <label class="form-field"><span>企业名称</span><input name="companyName" value="${escapeHtml(profile.companyName || "")}"></label>
         <label class="form-field"><span>行业</span><input name="industry" value="${escapeHtml(profile.industry || "")}"></label>
         <label class="form-field"><span>岗位</span><input name="positionName" value="${escapeHtml(profile.positionName || "")}"></label>
@@ -320,7 +320,6 @@ function renderStudentProfile(profile, session) {
   const accountRows = [
     { label: "当前身份", value: "学生" },
     { label: "登录账号", value: session.username },
-    { label: "档案 ID", value: session.profileId },
     { label: "简历附件", value: sanitizeAttachmentUrl(profile.resumeUrl) ? "可预览" : "未上传" }
   ];
 
@@ -472,13 +471,11 @@ function renderAlumniProfile(profile, session) {
     { label: "毕业年份", value: profile.graduationYear },
     { label: "学院", value: profile.college },
     { label: "专业", value: profile.major },
-    { label: "企业 ID", value: profile.companyId },
     { label: "所在城市", value: profile.city }
   ];
   const accountRows = [
     { label: "当前身份", value: "校友" },
     { label: "登录账号", value: session.username },
-    { label: "档案 ID", value: session.profileId },
     { label: "内推权限", value: Number(profile.referralPermission || 1) === 1 ? "启用中" : "已停用" }
   ];
 
@@ -535,7 +532,7 @@ function renderAlumniProfile(profile, session) {
             </div>
             <div class="profile-pill-grid">
               ${renderPillCards([
-                { label: "所在企业", value: profile.companyName, desc: `企业 ID：${compactValue(profile.companyId, "未绑定")}` },
+                { label: "所在企业", value: profile.companyName, desc: compactValue(profile.industry, "已绑定企业资料") },
                 { label: "负责岗位", value: profile.positionName, desc: "建议补充你最常处理的岗位类型。" },
                 { label: "权限状态", value: Number(profile.referralPermission || 1) === 1 ? "已启用" : "已停用", desc: "停用后学生仍可查看历史信息，但不会继续推进。" }
               ])}
@@ -641,7 +638,6 @@ function renderStudentProfileV2(profile, session) {
   const accountRows = [
     { label: "当前身份", value: "学生" },
     { label: "登录账号", value: session.username },
-    { label: "档案 ID", value: session.profileId },
     { label: "简历附件", value: hasResume ? "可预览" : "未上传" }
   ];
 
@@ -817,13 +813,11 @@ function renderAlumniProfileV2(profile, session) {
     { label: "毕业年份", value: profile.graduationYear },
     { label: "学院", value: profile.college },
     { label: "专业", value: profile.major },
-    { label: "企业 ID", value: profile.companyId },
     { label: "所在城市", value: profile.city }
   ];
   const accountRows = [
     { label: "当前身份", value: "校友" },
     { label: "登录账号", value: session.username },
-    { label: "档案 ID", value: session.profileId },
     { label: "内推权限", value: referralEnabled ? "启用中" : "已停用" }
   ];
 
@@ -897,7 +891,7 @@ function renderAlumniProfileV2(profile, session) {
             </div>
             <div class="profile-pill-grid">
               ${renderPillCards([
-                { label: "所在企业", value: profile.companyName, desc: `企业 ID：${compactValue(profile.companyId, "未绑定")}` },
+                { label: "所在企业", value: profile.companyName, desc: compactValue(profile.industry, "已绑定企业资料") },
                 { label: "负责岗位", value: profile.positionName, desc: "建议补充你最常处理或最熟悉的岗位类型。" },
                 { label: "权限状态", value: referralEnabled ? "已启用" : "已停用", desc: "停用后学生仍可查看历史信息，但不会继续推进新的内推动作。" }
               ])}
@@ -1227,7 +1221,6 @@ function renderStudentProfileV3(profile, session) {
             ${renderProfileInfoTable([
               { label: "当前身份", value: "学生" },
               { label: "登录账号", value: session.username },
-              { label: "档案 ID", value: session.profileId },
               { label: "简历附件", value: hasResume ? "可预览" : "未上传" }
             ])}
           </div>
@@ -1413,7 +1406,6 @@ function renderAlumniProfileV3(profile, session) {
             ${renderProfileInfoTable([
               { label: "当前身份", value: "校友" },
               { label: "登录账号", value: session.username },
-              { label: "档案 ID", value: session.profileId },
               { label: "权限状态", value: referralEnabled ? "正常" : "停用" }
             ])}
           </div>
@@ -1431,7 +1423,6 @@ function renderAlumniProfileV3(profile, session) {
                 { label: "毕业年份", value: profile.graduationYear },
                 { label: "学院", value: profile.college },
                 { label: "专业", value: profile.major },
-                { label: "企业 ID", value: profile.companyId },
                 { label: "所在城市", value: profile.city }
               ])}
             </div>

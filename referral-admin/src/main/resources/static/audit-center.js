@@ -134,9 +134,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   `);
 
   renderTable("audit-application-table",
-    ["ID", "岗位", "学生", "校友", "状态", "备注", "操作"],
+    ["岗位", "学生", "校友", "状态", "备注", "操作"],
     pendingApplications.map(item => [
-      item.id,
       item.jobTitle,
       item.studentName,
       item.alumniName,

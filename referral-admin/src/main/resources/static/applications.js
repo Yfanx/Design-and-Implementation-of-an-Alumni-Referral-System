@@ -55,9 +55,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       `);
 
       renderTable("alumni-application-table",
-        ["ID", "学生", "岗位", "附件", "状态", "备注", "操作"],
+        ["学生", "岗位", "附件", "状态", "备注", "操作"],
         applications.map((item) => [
-          item.id,
           item.studentName,
           item.jobTitle,
           renderAttachmentLink(item.resumeUrl, "查看附件"),
@@ -88,9 +87,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   `);
 
   renderTable("admin-application-table",
-    ["ID", "岗位", "学生", "校友", "附件", "状态", "备注", "申请时间"],
+    ["岗位", "学生", "校友", "附件", "状态", "备注", "申请时间"],
     applications.map((item) => [
-      item.id,
       item.jobTitle,
       item.studentName,
       item.alumniName,

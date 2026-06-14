@@ -12,8 +12,12 @@ async function loadConsultsForRole() {
 document.addEventListener("DOMContentLoaded", async () => {
   const session = ensureLogin();
   const consults = await loadConsultsForRole();
-  const headers = ["ID", "岗位 ID", "发送方", "接收方", "内容", "发送时间", "操作"];
-  const rows = consults.map(item => [item.id, item.jobId, item.senderUserId, item.receiverUserId, item.content, formatDateTime(item.sendTime),
+  const headers = ["发送方", "接收方", "内容", "发送时间", "操作"];
+  const rows = consults.map(item => [
+    item.senderDisplayName || "未知发送方",
+    item.receiverDisplayName || "未知接收方",
+    item.content,
+    formatDateTime(item.sendTime),
     `<button class="btn mark-read-btn" data-id="${item.id}" style="font-size:12px">已读</button>
      <button class="btn delete-consult-btn" data-id="${item.id}" style="background:#888;font-size:12px">删除</button>`
   ]);
@@ -44,9 +48,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         <section class="panel">
           <div class="panel-header"><div><h2>回复学生</h2><p>可直接演示校友端主动回复。</p></div></div>
           <form class="demo-form" id="alumni-consult-form">
-            <input name="jobId" value="4001" placeholder="岗位 ID">
-            <input name="senderUserId" value="${session.userId}" placeholder="发送方用户 ID">
-            <input name="receiverUserId" value="201" placeholder="接收方用户 ID">
+            <input type="hidden" name="jobId" value="4001">
+            <input type="hidden" name="senderUserId" value="${session.userId}">
+            <input type="hidden" name="receiverUserId" value="201">
             <input name="senderRole" value="1" placeholder="发送方角色">
             <input name="receiverRole" value="2" placeholder="接收方角色">
             <textarea name="content">建议重点突出你的 Java 项目经验、数据库优化经验和上线结果。</textarea>
@@ -66,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      document.getElementById("alumni-consult-result").innerText = `回复成功，消息 ID：${response.data}`;
+      document.getElementById("alumni-consult-result").innerText = "回复成功，消息列表已刷新。";
       location.reload();
     });
     return;
