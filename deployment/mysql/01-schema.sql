@@ -37,6 +37,7 @@ CREATE TABLE ref_company_info (
     city VARCHAR(64),
     address VARCHAR(255),
     company_desc VARCHAR(500),
+    logo_url VARCHAR(500),
     official_website VARCHAR(255),
     status TINYINT DEFAULT 1,
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP,

@@ -52,6 +52,7 @@ CREATE TABLE ref_company_info (
     city VARCHAR(64) NULL,
     address VARCHAR(255) NULL,
     company_desc VARCHAR(500) NULL,
+    logo_url VARCHAR(500) NULL,
     official_website VARCHAR(255) NULL,
     status TINYINT DEFAULT 1,
     creator VARCHAR(64) NULL,
