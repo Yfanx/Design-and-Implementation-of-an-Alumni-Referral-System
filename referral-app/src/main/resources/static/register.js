@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const resultEl = document.getElementById("register-result");
   const noteEl = document.getElementById("register-note");
   const roleInput = document.getElementById("register-role");
+  const passwordInput = form.elements.namedItem("password");
+  const confirmPasswordInput = form.elements.namedItem("confirmPassword");
   const submitButton = form.querySelector('button[type="submit"]');
   const roleButtons = Array.from(document.querySelectorAll(".role-switch-item"));
   const studentOnlyFields = Array.from(document.querySelectorAll(".student-only"));
@@ -76,6 +78,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const payload = formPayload(form);
       payload.role = roleInput.value || "STUDENT";
+      // Passwords must remain strings; formPayload converts numeric-looking values to numbers.
+      payload.password = passwordInput?.value ?? "";
+      payload.confirmPassword = confirmPasswordInput?.value ?? "";
 
       if (!payload.username || !payload.password) {
         resultEl.innerText = "用户名和密码不能为空。";
