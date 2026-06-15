@@ -112,7 +112,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         delete payload.education;
       }
 
-      delete payload.confirmPassword;
       resultEl.innerText = "正在提交注册信息...";
 
       const response = await apiRequest("/auth/register", {
