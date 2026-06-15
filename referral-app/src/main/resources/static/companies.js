@@ -1,4 +1,4 @@
-function companyJobCount(jobs, companyId) {
+﻿function companyJobCount(jobs, companyId) {
   return (jobs || []).filter((job) => Number(job.companyId) === Number(companyId)).length;
 }
 
@@ -270,11 +270,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function resolveCompanyAsset(companyName = "") {
   const text = String(companyName || "").trim();
-  if (/华为/.test(text)) return "/uploads/demo/company/huawei.png";
-  if (/阿里|阿里云/.test(text)) return "/uploads/demo/company/alibabacloud.png";
-  if (/腾讯/.test(text)) return "/uploads/demo/company/tencent.png";
-  if (/字节/.test(text)) return "/uploads/demo/company/bytedance.png";
-  if (/美团/.test(text)) return "/uploads/demo/company/meituan.png";
+  if (/华为/.test(text)) return "/assets/company/huawei.png";
+  if (/阿里|阿里云/.test(text)) return "/assets/company/alibabacloud.png";
+  if (/腾讯/.test(text)) return "/assets/company/tencent.png";
+  if (/字节/.test(text)) return "/assets/company/bytedance.png";
+  if (/美团/.test(text)) return "/assets/company/meituan.png";
   if (/百度/.test(text)) return "/alumni-icons/svg/logos_placeholders/brand-baidu-placeholder.svg";
   return "";
 }

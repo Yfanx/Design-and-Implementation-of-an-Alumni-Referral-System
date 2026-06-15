@@ -30,12 +30,14 @@
 
 1. `code\deployment\mysql\01-schema.sql`
 2. `code\deployment\mysql\02-seed-data.sql`
+3. `code\deployment\mysql\03-migrations.sql`
 
 命令行示例：
 
 ```bat
 mysql -u root -p < code\deployment\mysql\01-schema.sql
 mysql -u root -p < code\deployment\mysql\02-seed-data.sql
+mysql -u root -p yudao_referral_demo < code\deployment\mysql\03-migrations.sql
 ```
 
 默认数据库连接名使用：
@@ -97,6 +99,26 @@ mvn -pl referral-app,referral-admin -am package -DskipTests
 ```
 
 ## 6. 启动服务
+推荐直接在 `code` 目录执行一键启动脚本。脚本会自动使用 JDK 17、检查 Docker MySQL、构建项目、启动前后台服务，并在已有数据库上执行 `03-migrations.sql` 兼容迁移：
+
+```bat
+start-system.cmd
+```
+
+如果不希望自动打开浏览器，可执行：
+
+```bat
+powershell -ExecutionPolicy Bypass -File tools\start-all.ps1 -NoBrowser
+```
+
+停止前后台 Java 服务：
+
+```bat
+stop-system.cmd
+```
+
+也可以按下面方式手动启动。
+
 ### 启动后台
 
 ```bat
@@ -128,8 +150,12 @@ mvn -pl referral-app spring-boot:run
 - `8080` 和 `8081` 未被其他进程占用
 - 管理员只能进入 `8080`
 - 学生和校友只能进入 `8081`
+- 企业图标地址可访问，例如：
+  - `http://localhost:8081/assets/company/tencent.png`
 - 附件地址可访问，例如：
-  - `http://localhost:8081/uploads/demo/resume/wang.pdf`
+  - `http://localhost:8081/uploads/demo/resume/wang_backend_resume.pdf`
+- 全链路冒烟测试通过：
+  - `powershell -ExecutionPolicy Bypass -File tools\smoke-test.ps1`
 
 ## 10. 常见问题
 ### 10.1 端口被占用

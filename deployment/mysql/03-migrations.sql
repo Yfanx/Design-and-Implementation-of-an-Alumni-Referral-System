@@ -1,5 +1,3 @@
-USE yudao_referral_demo;
-
 SET @logo_url_exists = (
     SELECT COUNT(*)
     FROM information_schema.columns
@@ -17,3 +15,7 @@ SET @add_logo_url = IF(
 PREPARE migration_statement FROM @add_logo_url;
 EXECUTE migration_statement;
 DEALLOCATE PREPARE migration_statement;
+
+UPDATE ref_company_info
+SET logo_url = REPLACE(logo_url, '/uploads/demo/company/', '/assets/company/')
+WHERE logo_url LIKE '/uploads/demo/company/%';

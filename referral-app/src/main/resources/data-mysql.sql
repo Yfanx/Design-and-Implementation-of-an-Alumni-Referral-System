@@ -1,4 +1,4 @@
-USE yudao_referral_demo;
+﻿USE yudao_referral_demo;
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -6,11 +6,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 REPLACE INTO ref_company_info (
   id, company_name, industry, company_size, city, address, company_desc, logo_url, official_website, status
 ) VALUES
-  (3001, '腾讯', '互联网', '10000人以上', '深圳', '广东省深圳市南山区海天二路33号腾讯滨海大厦', '综合互联网科技企业，覆盖社交、内容、云服务与企业数字化等业务。', '/uploads/demo/company/tencent.png', 'https://www.tencent.com', 1),
-  (3002, '字节跳动', '互联网', '10000人以上', '上海', '上海市杨浦区政立路489号创智天地', '以内容平台、协同办公和全球化产品为核心的科技企业。', '/uploads/demo/company/bytedance.png', 'https://www.bytedance.com', 1),
-  (3003, '阿里云', '云计算', '10000人以上', '杭州', '浙江省杭州市西湖区转塘科技园', '阿里巴巴集团面向企业的云计算与数字化基础设施平台。', '/uploads/demo/company/alibabacloud.png', 'https://www.alibabacloud.com', 1),
-  (3004, '美团', '生活服务', '10000人以上', '北京', '北京市朝阳区望京东路4号', '连接到店、到家、出行与零售等场景的生活服务科技公司。', '/uploads/demo/company/meituan.png', 'https://www.meituan.com', 1),
-  (3005, '华为', 'ICT', '10000人以上', '深圳', '广东省深圳市龙岗区坂田华为基地', '覆盖通信设备、云、终端与数字能源等业务的 ICT 企业。', '/uploads/demo/company/huawei.png', 'https://www.huawei.com', 1);
+  (3001, '腾讯', '互联网', '10000人以上', '深圳', '广东省深圳市南山区海天二路33号腾讯滨海大厦', '综合互联网科技企业，覆盖社交、内容、云服务与企业数字化等业务。', '/assets/company/tencent.png', 'https://www.tencent.com', 1),
+  (3002, '字节跳动', '互联网', '10000人以上', '上海', '上海市杨浦区政立路489号创智天地', '以内容平台、协同办公和全球化产品为核心的科技企业。', '/assets/company/bytedance.png', 'https://www.bytedance.com', 1),
+  (3003, '阿里云', '云计算', '10000人以上', '杭州', '浙江省杭州市西湖区转塘科技园', '阿里巴巴集团面向企业的云计算与数字化基础设施平台。', '/assets/company/alibabacloud.png', 'https://www.alibabacloud.com', 1),
+  (3004, '美团', '生活服务', '10000人以上', '北京', '北京市朝阳区望京东路4号', '连接到店、到家、出行与零售等场景的生活服务科技公司。', '/assets/company/meituan.png', 'https://www.meituan.com', 1),
+  (3005, '华为', 'ICT', '10000人以上', '深圳', '广东省深圳市龙岗区坂田华为基地', '覆盖通信设备、云、终端与数字能源等业务的 ICT 企业。', '/assets/company/huawei.png', 'https://www.huawei.com', 1);
 
 REPLACE INTO ref_alumni_info (
   id, user_id, real_name, gender, graduation_year, college, major, company_id, company_name,

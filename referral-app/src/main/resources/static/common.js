@@ -6,7 +6,7 @@ let attachmentPreviewRequestSeq = 0;
 let pdfPreviewInitScheduled = false;
 let pdfJsModulePromise = null;
 
-function showToast(message, duration = 4000) {
+function showToast(message, duration = 4000, type = "error") {
   let container = document.getElementById("toast-container");
   if (!container) {
     container = document.createElement("div");
@@ -14,7 +14,7 @@ function showToast(message, duration = 4000) {
     document.body.appendChild(container);
   }
   const toast = document.createElement("div");
-  toast.className = "toast toast-error";
+  toast.className = `toast toast-${type === "success" ? "success" : "error"}`;
   toast.textContent = message;
   container.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add("is-visible"));
@@ -25,6 +25,26 @@ function showToast(message, duration = 4000) {
     toast.classList.remove("is-visible");
     toast.addEventListener("transitionend", () => toast.remove(), { once: true });
   }, duration);
+}
+
+function flashToast(message, type = "error") {
+  sessionStorage.setItem("referral_flash_toast", JSON.stringify({ message, type }));
+}
+
+function consumeFlashToast() {
+  const raw = sessionStorage.getItem("referral_flash_toast");
+  if (!raw) {
+    return;
+  }
+  sessionStorage.removeItem("referral_flash_toast");
+  try {
+    const flash = JSON.parse(raw);
+    if (flash?.message) {
+      showToast(flash.message, 4000, flash.type || "error");
+    }
+  } catch {
+    showToast(raw);
+  }
 }
 
 function getSession() {

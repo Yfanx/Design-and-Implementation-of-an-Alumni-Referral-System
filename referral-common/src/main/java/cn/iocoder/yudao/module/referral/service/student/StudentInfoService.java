@@ -15,4 +15,6 @@ public interface StudentInfoService {
     StudentInfoRespVO getStudentInfo(Long id);
 
     PageResult<StudentInfoRespVO> getStudentInfoPage(StudentInfoPageReqVO pageReqVO);
+
+    boolean existsByStudentNo(String studentNo);
 }

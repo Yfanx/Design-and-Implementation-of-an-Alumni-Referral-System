@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.referral.controller.admin.auth.vo.AuthLoginRespVO
 import cn.iocoder.yudao.module.referral.controller.admin.auth.vo.AuthRegisterReqVO;
 import cn.iocoder.yudao.module.referral.service.auth.AuthAccountService;
 import cn.iocoder.yudao.module.referral.service.auth.AuthService;
+import cn.iocoder.yudao.module.referral.service.student.StudentInfoService;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,10 +33,13 @@ public class AppAuthController {
 
     private final AuthAccountService authAccountService;
     private final AuthService authService;
+    private final StudentInfoService studentInfoService;
 
-    public AppAuthController(AuthAccountService authAccountService, AuthService authService) {
+    public AppAuthController(AuthAccountService authAccountService, AuthService authService,
+                             StudentInfoService studentInfoService) {
         this.authAccountService = authAccountService;
         this.authService = authService;
+        this.studentInfoService = studentInfoService;
     }
 
     @PostMapping("/login")
@@ -95,7 +100,40 @@ public class AppAuthController {
         if (authService.isUsernameTaken(reqVO.getUsername())) {
             return error("用户名已被注册");
         }
-        AuthLoginRespVO result = authService.register(reqVO);
-        return success(result);
+        if ("STUDENT".equals(reqVO.getRole())) {
+            if (reqVO.getStudentNo() == null || reqVO.getStudentNo().isBlank()) {
+                return error("学号不能为空");
+            }
+            String studentNo = reqVO.getStudentNo().trim();
+            if (studentInfoService.existsByStudentNo(studentNo)) {
+                return error("该学号已注册，请更换学号或直接登录");
+            }
+            reqVO.setStudentNo(studentNo);
+        } else if ("ALUMNI".equals(reqVO.getRole())) {
+            if (reqVO.getGraduationYear() == null || reqVO.getGraduationYear().isBlank()) {
+                return error("毕业年份不能为空");
+            }
+            if (reqVO.getCompanyName() == null || reqVO.getCompanyName().isBlank()) {
+                return error("所在企业不能为空");
+            }
+            if (reqVO.getPositionName() == null || reqVO.getPositionName().isBlank()) {
+                return error("岗位名称不能为空");
+            }
+        }
+        try {
+            AuthLoginRespVO result = authService.register(reqVO);
+            return success(result);
+        } catch (DuplicateKeyException exception) {
+            String message = exception.getMessage();
+            if (message != null && message.contains("uk_student_no")) {
+                return error("该学号已注册，请更换学号或直接登录");
+            }
+            if (message != null && message.contains("username")) {
+                return error("用户名已被注册");
+            }
+            return error("注册信息与已有账号冲突，请检查用户名、学号或身份资料");
+        } catch (IllegalArgumentException exception) {
+            return error(exception.getMessage());
+        }
     }
 }

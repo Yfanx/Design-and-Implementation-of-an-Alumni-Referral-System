@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     location.href = session.landingPage || "/dashboard.html";
     return;
   }
+  consumeFlashToast();
 
   const form = document.getElementById("login-form");
   const result = document.getElementById("login-result");

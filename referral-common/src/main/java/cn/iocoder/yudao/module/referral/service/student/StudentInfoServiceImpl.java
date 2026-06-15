@@ -149,6 +149,24 @@ public class StudentInfoServiceImpl implements StudentInfoService {
         return new PageResult<>(filtered, (long) filtered.size());
     }
 
+    @Override
+    public boolean existsByStudentNo(String studentNo) {
+        if (studentNo == null || studentNo.isBlank()) {
+            return false;
+        }
+        String normalized = studentNo.trim();
+        if (storageProperties.isMysqlMode()) {
+            Integer count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(1) FROM ref_student_info WHERE student_no = ?",
+                    Integer.class,
+                    normalized
+            );
+            return count != null && count > 0;
+        }
+        return referralDemoStore.listStudents().stream()
+                .anyMatch(student -> normalized.equals(student.getStudentNo()));
+    }
+
     private void copyFields(StudentInfoCreateReqVO source, StudentInfoDO target) {
         target.setUserId(source.getUserId());
         target.setRealName(source.getRealName());

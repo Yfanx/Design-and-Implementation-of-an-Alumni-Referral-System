@@ -114,13 +114,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       resultEl.innerText = "正在提交注册信息...";
 
-      const response = await apiRequest("/auth/register", {
+      await apiRequest("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      saveSession(response.data);
-      resultEl.innerText = `${payload.role === "ALUMNI" ? "校友" : "学生"}注册成功，正在进入工作台...`;
-      location.href = response.data.landingPage || "/dashboard.html";
+      flashToast("注册成功，请使用新账号登录。", "success");
+      resultEl.innerText = "注册成功，正在返回登录页...";
+      location.href = "/login.html";
     } catch (error) {
       resultEl.innerText = error?.message || "注册失败，请稍后重试。";
     } finally {

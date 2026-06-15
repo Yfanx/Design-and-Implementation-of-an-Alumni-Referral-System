@@ -1,4 +1,4 @@
-USE yudao_referral_demo;
+﻿USE yudao_referral_demo;
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;

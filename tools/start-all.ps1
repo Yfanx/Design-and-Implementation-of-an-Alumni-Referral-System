@@ -50,6 +50,12 @@ function Wait-TcpPort([int]$Port, [int]$TimeoutSeconds, [string]$Name) {
     throw "$Name did not become ready on port $Port within $TimeoutSeconds seconds."
 }
 
+function Get-PortProcessId([int]$Port) {
+    $connection = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $connection) { return $null }
+    return $connection.OwningProcess
+}
+
 function Get-YamlValue([string[]]$Lines, [string]$Key) {
     $match = $Lines | Where-Object { $_ -match ("^\s*" + [regex]::Escape($Key) + "\s*:\s*(.+?)\s*$") } | Select-Object -First 1
     if (-not $match) { return $null }
@@ -129,6 +135,19 @@ function Initialize-Database([string]$Container, [string]$Database, [string]$Pas
     if ($LASTEXITCODE -ne 0) { throw "Failed to initialize the demo data." }
 }
 
+function Apply-DatabaseMigrations([string]$Container, [string]$Database, [string]$Password) {
+    $migration = Join-Path $repoRoot "deployment\mysql\03-migrations.sql"
+    if (-not (Test-Path $migration)) {
+        return
+    }
+
+    Write-Step "Applying MySQL compatibility migrations..."
+    & docker cp $migration "${Container}:/tmp/03-migrations.sql" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Failed to copy the migration script into MySQL." }
+    & docker exec $Container mysql --default-character-set=utf8mb4 --user=root "--password=$Password" $Database --execute="source /tmp/03-migrations.sql"
+    if ($LASTEXITCODE -ne 0) { throw "Failed to apply database migrations." }
+}
+
 function Ensure-MySql([string]$Database, [string]$Username, [string]$Password) {
     if (Test-TcpPort 3306) {
         Write-Host "  MySQL is already reachable on port 3306." -ForegroundColor Green
@@ -172,6 +191,7 @@ function Ensure-MySql([string]$Database, [string]$Username, [string]$Password) {
 
     if ($created) {
         Initialize-Database $container $Database $Password
+        Apply-DatabaseMigrations $container $Database $Password
         return
     }
 
@@ -183,6 +203,7 @@ function Ensure-MySql([string]$Database, [string]$Username, [string]$Password) {
     if ($tableCount -eq "0") {
         Initialize-Database $container $Database $Password
     }
+    Apply-DatabaseMigrations $container $Database $Password
 }
 
 function Get-AppJar([string]$Module) {
@@ -203,18 +224,13 @@ function Start-App([string]$Name, [string]$Jar, [int]$Port, [string]$JavaExe) {
     $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $stdout = Join-Path $logDir "$Name-$Port-$stamp.out.log"
     $stderr = Join-Path $logDir "$Name-$Port-$stamp.err.log"
-    $process = Start-Process `
-        -FilePath $JavaExe `
-        -ArgumentList @("-Dfile.encoding=UTF-8", "-jar", $Jar) `
-        -WorkingDirectory $repoRoot `
-        -WindowStyle Hidden `
-        -RedirectStandardOutput $stdout `
-        -RedirectStandardError $stderr `
-        -PassThru
+    $command = "cd /d `"$repoRoot`" && start `"$Name`" /b `"$JavaExe`" -Dfile.encoding=UTF-8 -jar `"$Jar`" > `"$stdout`" 2> `"$stderr`""
+    Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", $command) -WindowStyle Hidden | Out-Null
+    Start-Sleep -Milliseconds 800
 
     return [ordered]@{
         name = $Name
-        pid = $process.Id
+        pid = $null
         port = $Port
         stdout = $stdout
         stderr = $stderr
@@ -263,12 +279,17 @@ try {
     $app = Start-App "referral-app" (Get-AppJar "referral-app") 8081 $javaExe
     if ($app) { $processes += $app }
 
+    Wait-TcpPort 8080 90 "Referral admin"
+    Wait-TcpPort 8081 90 "Referral app"
+
+    foreach ($process in $processes) {
+        if (-not $process.pid) {
+            $process.pid = Get-PortProcessId $process.port
+        }
+    }
     if ($processes.Count -gt 0) {
         $processes | ConvertTo-Json | Set-Content -Encoding UTF8 $stateFile
     }
-
-    Wait-TcpPort 8080 90 "Referral admin"
-    Wait-TcpPort 8081 90 "Referral app"
 
     Write-Host ""
     Write-Host "Referral system started successfully." -ForegroundColor Green

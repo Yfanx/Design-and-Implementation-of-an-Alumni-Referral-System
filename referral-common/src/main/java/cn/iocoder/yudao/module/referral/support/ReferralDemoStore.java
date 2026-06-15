@@ -248,7 +248,7 @@ public class ReferralDemoStore {
         company1.setCity("上海");
         company1.setAddress("浦东新区张江高科技园");
         company1.setCompanyDesc("聚焦校园招聘与企业人力资源数字化。");
-        company1.setLogoUrl("/uploads/demo/company/tencent.png");
+        company1.setLogoUrl("/assets/company/tencent.png");
         company1.setOfficialWebsite("https://example.com/huaxing");
         company1.setStatus(1);
         saveCompany(company1);
@@ -260,7 +260,7 @@ public class ReferralDemoStore {
         company2.setCity("杭州");
         company2.setAddress("余杭区未来科技城");
         company2.setCompanyDesc("从事企业智能推荐与人才匹配服务。");
-        company2.setLogoUrl("/uploads/demo/company/alibabacloud.png");
+        company2.setLogoUrl("/assets/company/alibabacloud.png");
         company2.setOfficialWebsite("https://example.com/yuntuo");
         company2.setStatus(1);
         saveCompany(company2);

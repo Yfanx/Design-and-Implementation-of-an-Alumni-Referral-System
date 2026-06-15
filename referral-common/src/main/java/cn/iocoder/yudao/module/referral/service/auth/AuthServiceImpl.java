@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.referral.service.alumni.AlumniInfoService;
 import cn.iocoder.yudao.module.referral.service.student.StudentInfoService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private AlumniInfoService alumniInfoService;
 
     @Override
+    @Transactional
     public AuthLoginRespVO register(AuthRegisterReqVO reqVO) {
         Long profileId;
         Long accountId = authAccountService.createAccount(reqVO.getUsername(), reqVO.getPassword(), reqVO.getRole(), null, null);
@@ -99,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
         authAccountService.updateAccountLink(accountId, userId, profileId);
 
         return new AuthLoginRespVO(
-                "token-" + reqVO.getUsername(),
+                "app-token-" + reqVO.getUsername(),
                 reqVO.getUsername(),
                 displayName,
                 reqVO.getRole(),
