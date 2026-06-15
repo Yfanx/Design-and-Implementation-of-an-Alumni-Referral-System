@@ -26,25 +26,31 @@
 ```
 
 ## 3. 导入数据库
-先在 MySQL 中创建目标库，然后依次执行以下 SQL：
+如果是迁移到另一台电脑并希望数据完全一致，优先使用一键重建脚本。该脚本会先删除旧的 `yudao_referral_demo`，再重新创建表结构并导入演示数据：
+
+```bat
+mysql -u root -p --default-character-set=utf8mb4 < code\deployment\mysql\00-reset-and-import.sql
+```
+
+执行完成后，数据库会包含最新字段、企业图标路径和简历 PDF 路径。默认数据库连接名使用：
+
+```text
+yudao_referral_demo
+```
+
+如果不想删除已有数据库，也可以手动分步导入：
 
 1. `code\deployment\mysql\01-schema.sql`
 2. `code\deployment\mysql\02-seed-data.sql`
-3. `code\deployment\mysql\03-migrations.sql`
 
 命令行示例：
 
 ```bat
 mysql -u root -p < code\deployment\mysql\01-schema.sql
 mysql -u root -p < code\deployment\mysql\02-seed-data.sql
-mysql -u root -p yudao_referral_demo < code\deployment\mysql\03-migrations.sql
 ```
 
-默认数据库连接名使用：
-
-```text
-yudao_referral_demo
-```
+`03-migrations.sql` 只用于旧版本数据库兼容升级；全新重建或清库导入时不需要单独执行。
 
 ## 4. 本地配置文件
 启动前请先在项目根目录 `code\config` 下复制以下模板文件：
