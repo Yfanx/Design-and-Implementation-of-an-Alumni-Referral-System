@@ -26,11 +26,19 @@
 ```
 
 ## 3. 导入数据库
-如果是迁移到另一台电脑并希望数据完全一致，优先使用一键重建脚本。该脚本会先删除旧的 `yudao_referral_demo`，再重新创建表结构并导入演示数据：
+如果使用项目自带的 Docker MySQL，优先执行重建脚本。脚本会把 SQL 复制进 MySQL 容器，再由容器内 mysql 按 UTF-8 读取，避免中文数据被 PowerShell 管道污染：
+
+```bat
+powershell -ExecutionPolicy Bypass -File tools\reset-db.ps1
+```
+
+如果使用本机安装的 MySQL，也可以在 `cmd` 中执行一键重建 SQL。该脚本会先删除旧的 `yudao_referral_demo`，再重新创建表结构并导入演示数据：
 
 ```bat
 mysql -u root -p --default-character-set=utf8mb4 < code\deployment\mysql\00-reset-and-import.sql
 ```
+
+注意：不要使用 `Get-Content ... | mysql` 这类 PowerShell 文本管道导入中文 SQL，否则可能把数据库里的中文写成 `????`。
 
 执行完成后，数据库会包含最新字段、企业图标路径和简历 PDF 路径。默认数据库连接名使用：
 
